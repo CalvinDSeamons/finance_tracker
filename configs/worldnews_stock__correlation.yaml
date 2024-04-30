@@ -1,0 +1,9 @@
+# Add your api keys here for the application.
+# Go to the following URLs, these API keys are free and provide the necessary data.
+
+# Newsapi.org/v2
+world_news_api_key = ''
+
+# Alphavantage.co
+stock_data_api_key = ''
+
