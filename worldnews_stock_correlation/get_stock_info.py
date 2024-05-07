@@ -1,6 +1,8 @@
-import matplotlib.pyplot as plt
+import argparse
 import json
+import matplotlib.pyplot as plt
 import requests
+import yaml
 
 def get_stock_data(symbol):
 
@@ -35,10 +37,8 @@ def get_news_data():
     else:
         print('Error:', response.status_code)
 
-if __name__ == "__main__":
-    #Creating ARG Parser
-    #parser = argparse.ArgumentParser(description="finacial inqueires")
 
+def plotstock():
     symbol = 'NVDA'  # Example stock symbol (Apple Inc.)
     data = get_stock_data(symbol)
     #data = json.loads(data)
@@ -59,5 +59,26 @@ if __name__ == "__main__":
     plt.xticks(rotation=90)
     plt.tight_layout()
     plt.show()
+
+
+def main(ticker, news, config):
+    print("main method")
+    
+
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(description="Command Line Inputs for stockapp")
+
+    parser.add_argument("--ticker", "-t", type=str, help="Ticker symbol for stock", required=True)
+    parser.add_argument("--news",   "-n", type=str, help="Fetch news for the specified ticker")
+    parser.add_argument("--config", "-c", help="Yaml Configuration file containing the api keys", default='../configs/worldnews_stock__correlation.yaml')
+
+    args = parser.parse_args()
+
+    if not args.ticker:
+        parser.error("Please provide a stock trading ticker.")
+    
+    main(args.ticker, args.news, args.config)
 
     
