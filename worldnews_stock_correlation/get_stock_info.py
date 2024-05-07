@@ -5,6 +5,7 @@ import requests
 import yaml
 
 def get_stock_data(ticker, stock_key):
+    print(stock_key)
     url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={ticker}&apikey={stock_key}'
     response = requests.get(url)
 
@@ -46,9 +47,14 @@ def get_news_data():
         print('Error:', response.status_code)
 
 
-def plotstock(ticker, stock_key):
-    data = get_stock_data(ticker, stock_key)
-    #data = json.loads(data)
+def plotstock(ticker, stock_key, dummy):
+
+    if dummy:
+        with open('../dummy_data/NVDA.json', 'r') as file:
+            data = json.load(file)
+    else:
+        data = get_stock_data(ticker, stock_key)
+
     dates = []
     closing_prices = []
 
@@ -69,7 +75,7 @@ def plotstock(ticker, stock_key):
 
 
 
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(16, 8))
     plt.plot(dates, closing_prices, marker='o', linestyle='-')
 
     plt.scatter([dates[i] for i in consecutive_lower_closes], 
@@ -77,20 +83,19 @@ def plotstock(ticker, stock_key):
             color='red', zorder=5, label='Consecutive Lower Closes')
 
     plt.title(symbol+' Closing Prices')
-    plt.xlabel('Date')
+    plt.xlabel('Date',rotation=135)
     plt.ylabel('Closing Price ($)')
-    plt.xticks(rotation=45)  # Rotate x-axis labels for better readability
     plt.tight_layout()
     plt.show()
     
 
-def main(ticker, news, config):
+def main(ticker, news, config, dummy):
     with open(config, "r") as file:
         # Load the YAML data
         data = yaml.safe_load(file)
     news_key = data["world_news_api_key"]
     stock_key = data["stock_data_api_key"]
-    plotstock(ticker, stock_key)
+    plotstock(ticker, stock_key, dummy)
 
 
 if __name__ == "__main__":
@@ -100,10 +105,11 @@ if __name__ == "__main__":
     parser.add_argument("--ticker", "-t", type=str, help="Ticker symbol for stock", required=True)
     parser.add_argument("--news",   "-n", type=str, help="Fetch news for the specified ticker")
     parser.add_argument("--config", "-c", help="Yaml Configuration file containing the api keys", default='../configs/worldnews_stock__correlation.yaml')
+    parser.add_argument("--dummy",  "-d", action='store_true', help="Using a static json for stock data, useful when api-limit is reached")
 
     args = parser.parse_args()
 
     if not args.ticker:
         parser.error("Please provide a stock trading ticker.")
     
-    main(args.ticker, args.news, args.config)
+    main(args.ticker, args.news, args.config, args.dummy)
