@@ -4,19 +4,26 @@ import matplotlib.pyplot as plt
 import requests
 import yaml
 
-def get_stock_data(symbol):
-
-
-
-    api_key=''
-    url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={symbol}&apikey={api_key}'
+def get_stock_data(ticker, stock_key):
+    url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={ticker}&apikey={stock_key}'
     response = requests.get(url)
-    data = response.json()
+
+    if response.status_code == 200:
+        data = response.json()
+        if 'Error Message' in data:
+            error_message = "Check to make sure your Ticker is valid and your apikey is correct"
+            print(f"Error: {error_message}")
+            quit()
+        else:
+            # Process the data
+            print(data)
+    else:
+        print("Error: Failed to fetch data from Alpha Vantage API")
+        
     return data
 
 def get_news_data():
     #bleh bleh news idk
-    news_api_key = ''
     BASE_URL     = 'https://newsapi.org/v2/'
     endpoint     = 'everything'
     params       = {
@@ -25,6 +32,7 @@ def get_news_data():
                    }
     
     response = requests.get(BASE_URL + endpoint, params=params)
+
     if response.status_code == 200:
         data = response.json()
         articles = data['articles']
@@ -38,32 +46,51 @@ def get_news_data():
         print('Error:', response.status_code)
 
 
-def plotstock():
-    symbol = 'NVDA'  # Example stock symbol (Apple Inc.)
-    data = get_stock_data(symbol)
+def plotstock(ticker, stock_key):
+    data = get_stock_data(ticker, stock_key)
     #data = json.loads(data)
     dates = []
     closing_prices = []
 
-    for date, values in data["Time Series (Daily)"].items():
-        dates.append(date)
-        closing_prices.append(float(values["4. close"]))
+    dates = list(data['Time Series (Daily)'].keys())[::-1]  # Reverse the order to plot from oldest to newest
+    closing_prices = [float(data['Time Series (Daily)'][date]['4. close']) for date in dates]
+    symbol = data['Meta Data']['2. Symbol']
 
-# Plotting
+    #This method needs to be moved elsewhere
+    consecutive_lower_closes = []
+    consecutive_count = 0
+    for i in range(1, len(closing_prices)):
+        if closing_prices[i] < closing_prices[i - 1]:
+            consecutive_count += 1
+        else:
+            if consecutive_count >= 5:
+                consecutive_lower_closes.extend(range(i - consecutive_count - 1, i))
+            consecutive_count = 0
+
+
+
     plt.figure(figsize=(10, 6))
     plt.plot(dates, closing_prices, marker='o', linestyle='-')
-    plt.title('Closing Prices of NVDA')
+
+    plt.scatter([dates[i] for i in consecutive_lower_closes], 
+            [closing_prices[i] for i in consecutive_lower_closes], 
+            color='red', zorder=5, label='Consecutive Lower Closes')
+
+    plt.title(symbol+' Closing Prices')
     plt.xlabel('Date')
-    plt.ylabel('Closing Price')
-    plt.gca().invert_xaxis()
-    plt.xticks(rotation=90)
+    plt.ylabel('Closing Price ($)')
+    plt.xticks(rotation=45)  # Rotate x-axis labels for better readability
     plt.tight_layout()
     plt.show()
-
+    
 
 def main(ticker, news, config):
-    print("main method")
-    
+    with open(config, "r") as file:
+        # Load the YAML data
+        data = yaml.safe_load(file)
+    news_key = data["world_news_api_key"]
+    stock_key = data["stock_data_api_key"]
+    plotstock(ticker, stock_key)
 
 
 if __name__ == "__main__":
@@ -80,5 +107,3 @@ if __name__ == "__main__":
         parser.error("Please provide a stock trading ticker.")
     
     main(args.ticker, args.news, args.config)
-
-    
