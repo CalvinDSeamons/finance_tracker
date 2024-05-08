@@ -89,7 +89,8 @@ def plotstock(ticker, stock_key, dummy):
     plt.show()
     
 
-def main(ticker, news, config, dummy):
+def main(args):
+    ticker, news, config, dummy = args
     with open(config, "r") as file:
         # Load the YAML data
         data = yaml.safe_load(file)
@@ -111,5 +112,5 @@ if __name__ == "__main__":
 
     if not args.ticker:
         parser.error("Please provide a stock trading ticker.")
-    
-    main(args.ticker, args.news, args.config, args.dummy)
+    args=([args.ticker, args.news, args.config, args.dummy])
+    main(args)
