@@ -4,6 +4,9 @@ import matplotlib.pyplot as plt
 import requests
 import yaml
 
+from newsapi import NewsApiClient
+from datetime import datetime, timedelta
+
 def get_stock_data(ticker, stock_key):
     print(stock_key)
     url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={ticker}&apikey={stock_key}'
@@ -46,12 +49,54 @@ def get_news_data():
     else:
         print('Error:', response.status_code)
 
+def get_news(news_key):
+    print(news_key)
+    newsapi = NewsApiClient(news_key)
+
+    # Define the time window
+    start_date = datetime.now() - timedelta(days=7)  # 7 days ago
+    end_date = datetime.now()  # Current date
+
+    # Format the dates as strings
+    start_date_str = start_date.strftime('%Y-%m-%d')
+    end_date_str = end_date.strftime('%Y-%m-%d')
+
+    # Query the News API for the top headlines in the specified time window
+    top_headlines = newsapi.get_top_headlines(language='en', country='us')
+    
+
+    # Filter the top headlines based on criteria to approximate trending news stories
+    trending_stories = []
+
+    # Analyze the articles to determine trending stories
+    for article in top_headlines['articles']:
+        # You can define your own criteria for determining trending stories
+        # For example, you can filter by popularity (e.g., number of shares, views, etc.)
+        # Here, we'll consider articles published within the specified time window
+        published_at = datetime.strptime(article['publishedAt'], '%Y-%m-%dT%H:%M:%SZ')
+        if start_date <= published_at <= end_date:
+            trending_stories.append(article)
+
+    # Print the top headlines
+    for article in top_headlines['articles']:
+        print(article['title'])
+        print(article['description'])
+        print(article['url'])
+        print() 
+
 
 def plotstock(ticker, stock_key, dummy):
 
     if dummy:
-        with open('../dummy_data/NVDA.json', 'r') as file:
-            data = json.load(file)
+        if ticker == 'NVDA':
+            with open('../dummy_data/NVDA.json', 'r') as file:
+                data = json.load(file)
+        elif ticker == 'AAPL':
+            with open('../dummy_data/AAPL.json', 'r') as file:
+                data = json.load(file)
+        else:
+            print("Error: When using dummy flag specify wither NVDA or AAPL as the ticker.")
+            quit()
     else:
         data = get_stock_data(ticker, stock_key)
 
@@ -91,13 +136,14 @@ def plotstock(ticker, stock_key, dummy):
 
 def main(args):
     ticker, news, config, dummy = args
+
     with open(config, "r") as file:
         # Load the YAML data
         data = yaml.safe_load(file)
     news_key = data["world_news_api_key"]
     stock_key = data["stock_data_api_key"]
     plotstock(ticker, stock_key, dummy)
-
+    #get_news(news_key)
 
 if __name__ == "__main__":
 
