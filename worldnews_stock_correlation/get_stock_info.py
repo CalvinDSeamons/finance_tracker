@@ -49,17 +49,19 @@ def get_news_data():
     else:
         print('Error:', response.status_code)
 
-def get_news(news_key):
-    print(news_key)
+def get_news(news_key, date_window):
     newsapi = NewsApiClient(news_key)
 
     # Define the time window
-    start_date = datetime.now() - timedelta(days=7)  # 7 days ago
-    end_date = datetime.now()  # Current date
+    #start_date = datetime.now() - timedelta(days=7)  # 7 days ago
+    #end_date = datetime.now()  # Current date
 
     # Format the dates as strings
-    start_date_str = start_date.strftime('%Y-%m-%d')
-    end_date_str = end_date.strftime('%Y-%m-%d')
+    #start_date_str = start_date.strftime('%Y-%m-%d')
+    #end_date_str = end_date.strftime('%Y-%m-%d')
+    start_date = datetime.strptime(date_window, '%Y-%m-%d')
+    next_day = start_date + timedelta(days=1)
+    print(str(start_date) + "|||||" + str(next_day))
 
     # Query the News API for the top headlines in the specified time window
     top_headlines = newsapi.get_top_headlines(language='en', country='us')
@@ -118,7 +120,11 @@ def plotstock(ticker, stock_key, dummy):
                 consecutive_lower_closes.extend(range(i - consecutive_count - 1, i))
             consecutive_count = 0
 
+    
+    middle_index = len(dates) // 2
+    print(dates[middle_index])
 
+    get_news('../configs/worldnews_stock__correlation.yaml', dates[middle_index])
 
     plt.figure(figsize=(16, 8))
     plt.plot(dates, closing_prices, marker='o', linestyle='-')
@@ -133,6 +139,13 @@ def plotstock(ticker, stock_key, dummy):
     plt.tight_layout()
     plt.show()
     
+
+def get_keys(key_type):
+    # Method to return any api key.
+     with open(config, "r") as file:
+        # Load the YAML data
+        data = yaml.safe_load(file)
+
 
 def main(args):
     ticker, news, config, dummy = args
