@@ -7,6 +7,40 @@ import yaml
 from newsapi import NewsApiClient
 from datetime import datetime, timedelta
 
+
+class APIClient:
+    # APIClient contains the argparser data, api keys, as well as unique functions for plotting data.
+    # This helps clean up the data. 
+
+    def __init__(self,config_file, ticker, news=None):
+        # Setting arpparser args such as ticker and news keywords.
+        self.ticker = ticker
+        self.news = news
+        # Loading in and setting all API Keys from config file.
+        self.config = self.load_config(config_file)
+        self.news_api_key = self.config['keys']['world_news_api_key']
+        self.stock_api_key = self.config['keys']['stock_data_api_key']
+        self.reddit_api_key = self.config['keys']['reddit_data_api_key']
+        self.fb_api_key = self.config['keys']['facebook_data_api_key']
+        self.instagram_api_key = self.config['keys']['instagram_data_api_key']
+
+    def load_config(self, config_file):
+        with open(config_file, 'r') as file:
+            config = yaml.safe_load(file)
+        return config
+    
+    def test(self):
+        # This is just here for my sanity.
+        print("Hello from the API Client!")
+
+    def get_ticker(self):
+        print(self.ticker)
+    
+    def get_news(self):
+        print(self.news)
+
+    
+    
 def get_stock_data(ticker, stock_key):
     print(stock_key)
     url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={ticker}&apikey={stock_key}'
@@ -138,25 +172,13 @@ def plotstock(ticker, stock_key, dummy):
     plt.ylabel('Closing Price ($)')
     plt.tight_layout()
     plt.show()
-    
-
-def get_keys(key_type):
-    # Method to return any api key.
-     with open(config, "r") as file:
-        # Load the YAML data
-        data = yaml.safe_load(file)
-
 
 def main(args):
     ticker, news, config, dummy = args
-
-    with open(config, "r") as file:
-        # Load the YAML data
-        data = yaml.safe_load(file)
-    news_key = data["world_news_api_key"]
-    stock_key = data["stock_data_api_key"]
-    plotstock(ticker, stock_key, dummy)
-    #get_news(news_key)
+    api_client = APIClient(config, ticker, news)
+    api_client.test()
+    api_client.get_ticker()
+    api_client.get_news()
 
 if __name__ == "__main__":
 
