@@ -1,9 +1,15 @@
 # Add your api keys here for the application.
 # Go to the following URLs, these API keys are free and provide the necessary data.
+# At the bare minimum you need at least the NewsAPI and Stock API key.
 
-# Newsapi.org/v2
-world_news_api_key = ''
-
-# Alphavantage.co
-stock_data_api_key = ''
-
+keys:
+  # Newsapi.org/v2
+  world_news_api_key: ''
+  # Alphavantage.co
+  stock_data_api_key: ''
+  # Reddit API Key
+  reddit_data_api_key: ''
+  # FaceBook API Key
+  facebook_data_api_key: ''
+  # Instagram API Key
+  instagram_data_api_key: ''
