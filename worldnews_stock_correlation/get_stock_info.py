@@ -1,16 +1,18 @@
+# Main File for stock/news correlation, the API Client and API and Webscraper Data is popualted here. 
+# Imports 
 import argparse
 import json
 import matplotlib.pyplot as plt
 import requests
+import sys
+import warnings
 import yaml
 
 from newsapi import NewsApiClient
 from datetime import datetime, timedelta
 
-
 class APIClient:
-    # APIClient contains the argparser data, api keys, as well as unique functions for plotting data.
-    # This helps clean up the data. 
+    # APIClient contains the argparser data, api keys, as well as unique functions for plotting data. 
 
     def __init__(self,config_file, ticker, news=None):
         # Setting arpparser args such as ticker and news keywords.
@@ -34,13 +36,20 @@ class APIClient:
         print("Hello from the API Client!")
 
     def get_ticker(self):
-        print(self.ticker)
+        return self.ticker
     
     def get_news(self):
-        print(self.news)
+        return self.news
 
     
-    
+# --------------End of API Client Class---------------    
+
+
+def error_exit(message, exit_code=1):
+    print(f"Error: {message}", file=sys.stderr)
+    sys.exit(exit_code)
+
+
 def get_stock_data(ticker, stock_key):
     print(stock_key)
     url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={ticker}&apikey={stock_key}'
@@ -174,24 +183,27 @@ def plotstock(ticker, stock_key, dummy):
     plt.show()
 
 def main(args):
+    # Main method creates the api_client objects and kicks off argparse actions.
+
     ticker, news, config, dummy = args
     api_client = APIClient(config, ticker, news)
+
     api_client.test()
     api_client.get_ticker()
     api_client.get_news()
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description="Command Line Inputs for stockapp")
+    parser = argparse.ArgumentParser(description="Command line inputs for stockapp")
 
-    parser.add_argument("--ticker", "-t", type=str, help="Ticker symbol for stock", required=True)
-    parser.add_argument("--news",   "-n", type=str, help="Fetch news for the specified ticker")
-    parser.add_argument("--config", "-c", help="Yaml Configuration file containing the api keys", default='../configs/worldnews_stock__correlation.yaml')
-    parser.add_argument("--dummy",  "-d", action='store_true', help="Using a static json for stock data, useful when api-limit is reached")
+    parser.add_argument("--ticker", "-t", type=str, help="Stock Market Ticker, This value is required. Usage: --ticker=AAPL",required=True)
+    parser.add_argument("--news",   "-n", nargs='*', type=str, help="Keywords to associate to online news. Usage: --news=Biden,apple,Gaza,Planecrash")
+    parser.add_argument("--config", "-c", help="Yaml Configuration file containing the api keys. "
+                                               "This will override default config. Usage: --config='path_to_your_config"
+                                               , default='../configs/worldnews_stock__correlation.yaml')
+    parser.add_argument("--dummy",  "-d", action='store_true', help="If APIs request limit has been reached dummy will use saved static data. "
+                                                                     "Usage: -d or --dummy")
 
     args = parser.parse_args()
-
-    if not args.ticker:
-        parser.error("Please provide a stock trading ticker.")
     args=([args.ticker, args.news, args.config, args.dummy])
     main(args)
