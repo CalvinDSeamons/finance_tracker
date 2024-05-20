@@ -3,6 +3,7 @@
 import argparse
 import json
 import matplotlib.pyplot as plt
+import pandas as pd
 import requests
 import sys
 import warnings
@@ -14,10 +15,11 @@ from datetime import datetime, timedelta
 class APIClient:
     # APIClient contains the argparser data, api keys, as well as unique functions for plotting data. 
 
-    def __init__(self,config_file, ticker, news=None):
+    def __init__(self,config_file, ticker, dummy, news=None):
         # Setting arpparser args such as ticker and news keywords.
         self.ticker = ticker
         self.news = news
+        self.dummy = dummy
         # Loading in and setting all API Keys from config file.
         self.config = self.load_config(config_file)
         self.news_api_key = self.config['keys']['world_news_api_key']
@@ -25,6 +27,7 @@ class APIClient:
         self.reddit_api_key = self.config['keys']['reddit_data_api_key']
         self.fb_api_key = self.config['keys']['facebook_data_api_key']
         self.instagram_api_key = self.config['keys']['instagram_data_api_key']
+
 
     def load_config(self, config_file):
         with open(config_file, 'r') as file:
@@ -36,11 +39,22 @@ class APIClient:
         print("Hello from the API Client!")
 
     def get_ticker(self):
+        # Returns the stock ticker name.
         return self.ticker
     
-    def get_news(self):
+    def get_news_keywords(self):
+        # Returns the keywords for news articles to search.
         return self.news
 
+    def get_dummy(self):
+        # Return T or F depending on argparse flag.
+        return self.dummy
+    
+    def get_keylist(self):
+        self.keylist = {}
+        self.keylist['worldnews']=self.news_api_key
+        self.keylist['stockticker']=self.stock_api_key
+        return self.keylist
     
 # --------------End of API Client Class---------------    
 
@@ -50,8 +64,10 @@ def error_exit(message, exit_code=1):
     sys.exit(exit_code)
 
 
-def get_stock_data(ticker, stock_key):
-    print(stock_key)
+def get_stock_data(api_cleint, ticker):
+
+    keys=api_client.get_keylist()
+    stock_key = keys['stockticker']
     url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={ticker}&apikey={stock_key}'
     response = requests.get(url)
 
@@ -103,8 +119,9 @@ def get_news(news_key, date_window):
     #start_date_str = start_date.strftime('%Y-%m-%d')
     #end_date_str = end_date.strftime('%Y-%m-%d')
     start_date = datetime.strptime(date_window, '%Y-%m-%d')
-    next_day = start_date + timedelta(days=1)
+    next_day = start_date + timedelta(days=2)
     print(str(start_date) + "|||||" + str(next_day))
+    end_date=next_day
 
     # Query the News API for the top headlines in the specified time window
     top_headlines = newsapi.get_top_headlines(language='en', country='us')
@@ -125,14 +142,17 @@ def get_news(news_key, date_window):
     # Print the top headlines
     for article in top_headlines['articles']:
         print(article['title'])
-        print(article['description'])
-        print(article['url'])
+        #print(article['description'])
+        #print(article['url'])
         print() 
+    return start_date, end_date, top_headlines
 
 
-def plotstock(ticker, stock_key, dummy):
+def plotstock(api_client):
 
-    if dummy:
+    ticker=api_client.get_ticker()
+
+    if api_client.get_dummy():
         if ticker == 'NVDA':
             with open('../dummy_data/NVDA.json', 'r') as file:
                 data = json.load(file)
@@ -143,7 +163,7 @@ def plotstock(ticker, stock_key, dummy):
             print("Error: When using dummy flag specify wither NVDA or AAPL as the ticker.")
             quit()
     else:
-        data = get_stock_data(ticker, stock_key)
+        data = get_stock_data(ticker)
 
     dates = []
     closing_prices = []
@@ -166,31 +186,77 @@ def plotstock(ticker, stock_key, dummy):
     
     middle_index = len(dates) // 2
     print(dates[middle_index])
+    key = api_client.get_keylist()
+    print(key)
+    newskey=key['worldnews']
+    
+    news_startdate, news_enddate, headlines = get_news(newskey, dates[middle_index])
 
-    get_news('../configs/worldnews_stock__correlation.yaml', dates[middle_index])
+    dates = pd.date_range(start=news_startdate, end=news_enddate)
 
-    plt.figure(figsize=(16, 8))
-    plt.plot(dates, closing_prices, marker='o', linestyle='-')
 
-    plt.scatter([dates[i] for i in consecutive_lower_closes], 
-            [closing_prices[i] for i in consecutive_lower_closes], 
-            color='red', zorder=5, label='Consecutive Lower Closes')
+    fig, ax = plt.subplots()
+    ax.plot(dates, closing_prices, marker='o')
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+    fig.autofmt_xdate()
+    for start_date, end_date in consecutive_lower_closes:
+        news_titles = headlines
+    
+        # Find the midpoint date of the down days
+        mid_date = pd.to_datetime(start_date) + (pd.to_datetime(end_date) - pd.to_datetime(start_date)) / 2
+    
+        # Find the corresponding y value (stock price) at the midpoint date
+        mid_price = stock_prices[np.where(dates == mid_date)[0][0]]
+    
+        # Create a bubble with news titles
+        news_text = '\n'.join(news_titles)
+        annotation = TextArea(news_text, minimumdescent=False)
+        bubble = AnnotationBbox(annotation, (mdates.date2num(mid_date), mid_price),
+                            xybox=(50., 50.),
+                            xycoords='data',
+                            boxcoords="offset points",
+                            arrowprops=dict(arrowstyle="->"))
+        ax.add_artist(bubble)
 
-    plt.title(symbol+' Closing Prices')
-    plt.xlabel('Date',rotation=135)
-    plt.ylabel('Closing Price ($)')
-    plt.tight_layout()
+    plt.legend()
     plt.show()
+
+
+
+
+
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+    fig.autofmt_xdate()
+
+    plt.show()
+    # ----------- Old MatPlotLib Method -----------#
+    #plt.figure(figsize=(16, 8))
+    #plt.plot(dates, closing_prices, marker='o', linestyle='-')
+
+    #plt.scatter([dates[i] for i in consecutive_lower_closes], 
+    #        [closing_prices[i] for i in consecutive_lower_closes], 
+    #        color='red', zorder=5, label='Consecutive Lower Closes')
+
+    #plt.title(symbol+' Closing Prices')
+    #plt.xlabel('Date',rotation=135)
+    #plt.ylabel('Closing Price ($)')
+    #plt.tight_layout()
+    #plt.show()
 
 def main(args):
     # Main method creates the api_client objects and kicks off argparse actions.
 
     ticker, news, config, dummy = args
-    api_client = APIClient(config, ticker, news)
+    api_client = APIClient(config, ticker, dummy, news)
 
     api_client.test()
     api_client.get_ticker()
-    api_client.get_news()
+    api_client.get_news_keywords()
+
+    plotstock(api_client)
+    
+
+
 
 if __name__ == "__main__":
 
