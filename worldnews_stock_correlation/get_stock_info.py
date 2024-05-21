@@ -3,14 +3,20 @@
 import argparse
 import json
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 import pandas as pd
 import requests
 import sys
 import warnings
 import yaml
 
-from newsapi import NewsApiClient
 from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
+from newsapi import NewsApiClient
+import matplotlib.cbook as cbook
+from matplotlib.offsetbox import AnnotationBbox, TextArea
+
+
 
 class APIClient:
     # APIClient contains the argparser data, api keys, as well as unique functions for plotting data. 
@@ -64,11 +70,11 @@ def error_exit(message, exit_code=1):
     sys.exit(exit_code)
 
 
-def get_stock_data(api_cleint, ticker):
+def get_stock_data(api_client):
 
     keys=api_client.get_keylist()
     stock_key = keys['stockticker']
-    url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={ticker}&apikey={stock_key}'
+    url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={api_client.get_ticker()}&apikey={stock_key}'
     response = requests.get(url)
 
     if response.status_code == 200:
@@ -108,7 +114,7 @@ def get_news_data():
     else:
         print('Error:', response.status_code)
 
-def get_news(news_key, date_window):
+def get_news(news_key, beginning_date, ending_date):
     newsapi = NewsApiClient(news_key)
 
     # Define the time window
@@ -118,17 +124,31 @@ def get_news(news_key, date_window):
     # Format the dates as strings
     #start_date_str = start_date.strftime('%Y-%m-%d')
     #end_date_str = end_date.strftime('%Y-%m-%d')
-    start_date = datetime.strptime(date_window, '%Y-%m-%d')
-    next_day = start_date + timedelta(days=2)
-    print(str(start_date) + "|||||" + str(next_day))
-    end_date=next_day
+    #start_date = datetime.strptime(beginning_date, '%Y-%m-%d')
+    #end_date = datetime.strptime(ending_date, '%Y-%m-%d')
+
+    end_date = datetime.now()
+    start_date = end_date - relativedelta(months=1)
+
+    start_date_str = start_date.strftime('%Y-%m-%d')
+    end_date_str = end_date.strftime('%Y-%m-%d')
+
+    #print(str(start_date) + "|||||" + str(end_date))
+   
 
     # Query the News API for the top headlines in the specified time window
-    top_headlines = newsapi.get_top_headlines(language='en', country='us')
-    
+    #top_headlines = newsapi.get_top_headlines(language='en', country='us')
+    top_headlines = newsapi.get_everything(
+    q='stock',
+    from_param=start_date_str,
+    to=end_date_str,
+    language='en',
+    sort_by='publishedAt',
+    page=1)
+
 
     # Filter the top headlines based on criteria to approximate trending news stories
-    trending_stories = []
+    trending_stories = {}
 
     # Analyze the articles to determine trending stories
     for article in top_headlines['articles']:
@@ -136,17 +156,21 @@ def get_news(news_key, date_window):
         # For example, you can filter by popularity (e.g., number of shares, views, etc.)
         # Here, we'll consider articles published within the specified time window
         published_at = datetime.strptime(article['publishedAt'], '%Y-%m-%dT%H:%M:%SZ')
+        published_date = published_at.date()
         if start_date <= published_at <= end_date:
-            trending_stories.append(article)
+            trending_stories[article['title']]=published_at.date()
 
     # Print the top headlines
     for article in top_headlines['articles']:
-        print(article['title'])
+        published_at = datetime.strptime(article['publishedAt'], '%Y-%m-%dT%H:%M:%SZ')
+        published_date = published_at.date()
+        #print(article['title']+ "-----"+str(published_at))
         #print(article['description'])
         #print(article['url'])
-        print() 
-    return start_date, end_date, top_headlines
-
+        #print(published_date)
+        trending_stories[article['title']]=published_at.date()
+    #print(trending_stories)
+    return trending_stories
 
 def plotstock(api_client):
 
@@ -163,7 +187,7 @@ def plotstock(api_client):
             print("Error: When using dummy flag specify wither NVDA or AAPL as the ticker.")
             quit()
     else:
-        data = get_stock_data(ticker)
+        data = get_stock_data(api_client)
 
     dates = []
     closing_prices = []
@@ -184,51 +208,85 @@ def plotstock(api_client):
             consecutive_count = 0
 
     
-    middle_index = len(dates) // 2
-    print(dates[middle_index])
+    
     key = api_client.get_keylist()
     print(key)
     newskey=key['worldnews']
     
-    news_startdate, news_enddate, headlines = get_news(newskey, dates[middle_index])
+    newslist = get_news(newskey, dates[0], dates[len(dates)-1])
 
-    dates = pd.date_range(start=news_startdate, end=news_enddate)
+    dates = []
+    close_prices = []
 
+    for date_str, daily_data in data["Time Series (Daily)"].items():
+        date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        close_price = float(daily_data["4. close"])
+        dates.append(date)
+        close_prices.append(close_price)
 
+    # Prepare the news data
+    news_dates = set(newslist.values())
+    news_annotations = {date: [] for date in news_dates}
+    for title, date in newslist.items():
+        news_annotations[date].append(title)
+
+    # Create the plot
     fig, ax = plt.subplots()
-    ax.plot(dates, closing_prices, marker='o')
+
+    # Plot the stock closing prices
+    ax.plot(dates, close_prices, marker='o', linestyle='-', color='b', label='Closing Prices')
+
+    # Highlight dates with news articles
+    news_bubbles = [date for date in dates if date in news_dates]
+    news_prices = [close_prices[dates.index(date)] for date in news_bubbles]
+
+    # Plot the news bubbles
+    bubble_plot = ax.scatter(news_bubbles, news_prices, color='red', s=100, label='News Articles')
+
+    # Function to handle click events
+    def onpick(event):
+        if event.artist != bubble_plot:
+            return
+        ind = event.ind[0]
+        date_clicked = news_bubbles[ind]
+        titles = news_annotations[date_clicked]
+        news_text = "\n".join(titles)
+        print(f"News on {date_clicked}:\n{news_text}")
+
+    # Connect the click event to the handler function
+    fig.canvas.mpl_connect('pick_event', onpick)
+
+    # Annotate the news bubbles
+    for date, price in zip(news_bubbles, news_prices):
+        annotation_text = "\n".join(news_annotations[date])
+        annotation = AnnotationBbox(TextArea(annotation_text), (mdates.date2num(date), price),
+                                    xybox=(30, 30),
+                                    xycoords='data',
+                                    boxcoords="offset points",
+                                    arrowprops=dict(arrowstyle="->", connectionstyle="angle,angleA=0,angleB=90,rad=10"))
+        annotation.set_visible(False)
+        ax.add_artist(annotation)
+        def on_hover(event):
+            if event.artist == bubble_plot:
+                ind = event.ind[0]
+                annotation.set_visible(True)
+                fig.canvas.draw_idle()
+
+        fig.canvas.mpl_connect('motion_notify_event', on_hover)
+
+    # Format the x-axis with date labels
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
     fig.autofmt_xdate()
-    for start_date, end_date in consecutive_lower_closes:
-        news_titles = headlines
-    
-        # Find the midpoint date of the down days
-        mid_date = pd.to_datetime(start_date) + (pd.to_datetime(end_date) - pd.to_datetime(start_date)) / 2
-    
-        # Find the corresponding y value (stock price) at the midpoint date
-        mid_price = stock_prices[np.where(dates == mid_date)[0][0]]
-    
-        # Create a bubble with news titles
-        news_text = '\n'.join(news_titles)
-        annotation = TextArea(news_text, minimumdescent=False)
-        bubble = AnnotationBbox(annotation, (mdates.date2num(mid_date), mid_price),
-                            xybox=(50., 50.),
-                            xycoords='data',
-                            boxcoords="offset points",
-                            arrowprops=dict(arrowstyle="->"))
-        ax.add_artist(bubble)
 
-    plt.legend()
-    plt.show()
-
-
-
-
-
-    ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
-    fig.autofmt_xdate()
+    # Add labels and title
+    ax.set_xlabel('Date')
+    ax.set_ylabel('Closing Price')
+    ax.set_title('Stock Closing Prices with News Overlays')
+    ax.legend()
 
     plt.show()
+
+    #plt.show()
     # ----------- Old MatPlotLib Method -----------#
     #plt.figure(figsize=(16, 8))
     #plt.plot(dates, closing_prices, marker='o', linestyle='-')
