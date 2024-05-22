@@ -304,7 +304,7 @@ def plotstock(api_client):
 def main(args):
     # Main method creates the api_client objects and kicks off argparse actions.
 
-    ticker, news, config, dummy = args
+    ticker, news, config, dummy, gui, webscraper = args
     api_client = APIClient(config, ticker, dummy, news)
 
     api_client.test()
@@ -327,7 +327,11 @@ if __name__ == "__main__":
                                                , default='../configs/worldnews_stock__correlation.yaml')
     parser.add_argument("--dummy",  "-d", action='store_true', help="If APIs request limit has been reached dummy will use saved static data. "
                                                                      "Usage: -d or --dummy")
+    parser.add_argument("--gui", "-g", action='store_true', help="Launches a user GUI, flags such as ticker, and news will be overridden. "
+                                                                  "Usage: -g ot --gui")
+    parser.add_argument("--webscraper","-ws", nargs='*', type=str, help="Keywords to associte to online news, using webscraping instead of apis, slower but more data. "
+                                                                        "Usage: --webscraper=Turtle, tree, plane" )
 
     args = parser.parse_args()
-    args=([args.ticker, args.news, args.config, args.dummy])
+    args=([args.ticker, args.news, args.config, args.dummy, args.gui, args.webscraper])
     main(args)
