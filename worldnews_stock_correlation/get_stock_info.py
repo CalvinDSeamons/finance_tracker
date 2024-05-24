@@ -2,18 +2,20 @@
 # Imports 
 import argparse
 import json
+import matplotlib.cbook as cbook
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import pandas as pd
 import requests
 import sys
+import time
 import warnings
 import yaml
 
+from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from newsapi import NewsApiClient
-import matplotlib.cbook as cbook
 from matplotlib.offsetbox import AnnotationBbox, TextArea
 
 
@@ -21,17 +23,18 @@ from matplotlib.offsetbox import AnnotationBbox, TextArea
 class APIClient:
     # APIClient contains the argparser data, api keys, as well as unique functions for plotting data. 
 
-    def __init__(self,config_file, ticker, dummy, news=None):
+    def __init__(self,config_file, ticker, dummy, news=None, webscraper=None):
         # Setting arpparser args such as ticker and news keywords.
-        self.ticker = ticker
-        self.news = news
-        self.dummy = dummy
+        self.ticker     = ticker
+        self.news       = news
+        self.dummy      = dummy
+        self.webscraper = webscraper
         # Loading in and setting all API Keys from config file.
-        self.config = self.load_config(config_file)
-        self.news_api_key = self.config['keys']['world_news_api_key']
-        self.stock_api_key = self.config['keys']['stock_data_api_key']
-        self.reddit_api_key = self.config['keys']['reddit_data_api_key']
-        self.fb_api_key = self.config['keys']['facebook_data_api_key']
+        self.config            = self.load_config(config_file)
+        self.news_api_key      = self.config['keys']['world_news_api_key']
+        self.stock_api_key     = self.config['keys']['stock_data_api_key']
+        self.reddit_api_key    = self.config['keys']['reddit_data_api_key']
+        self.fb_api_key        = self.config['keys']['facebook_data_api_key']
         self.instagram_api_key = self.config['keys']['instagram_data_api_key']
 
 
@@ -57,10 +60,19 @@ class APIClient:
         return self.dummy
     
     def get_keylist(self):
+        # Returns a full list of API keys from the config.
         self.keylist = {}
         self.keylist['worldnews']=self.news_api_key
         self.keylist['stockticker']=self.stock_api_key
         return self.keylist
+    
+    def get_stock_api(self):
+        # Returns Stock API Key.
+        return self.stock_api_key
+    
+    def get_news_api(self):
+        # Returns News API Key.
+        return self.news_api_key
     
 # --------------End of API Client Class---------------    
 
@@ -91,6 +103,49 @@ def get_stock_data(api_client):
         
     return data
 
+
+# Function to scrape comments from a post URL
+def scrape_comments(post_url):
+    response = requests.get(post_url, headers=headers)
+    soup = BeautifulSoup(response.content, 'html.parser')
+    
+    # Extract comments - the class might need to be updated as per current Reddit structure
+    comments = soup.find_all('div', class_='Comment')
+    
+    for comment in comments:
+        comment_text = comment.find('p')
+        if comment_text:
+            print(comment_text.get_text())
+
+def get_reddit_data():
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
+    # URL of the subreddit
+    subreddit_url = 'https://www.reddit.com/r/learnpython/'
+    response = requests.get(subreddit_url, headers=headers)
+    
+    if response.status_code == 200:
+        soup = BeautifulSoup(response.content, 'html.parser')
+        
+        # Extract post URLs - the class might need to be updated as per current Reddit structure
+        posts = soup.find_all('div', class_='Post')
+        
+        post_urls = []
+        for post in posts:
+            post_url_tag = post.find('a', class_='SQnoC3ObvgnGjWt90zD9Z')
+            if post_url_tag:
+                post_url = 'https://www.reddit.com' + post_url_tag['href']
+                post_urls.append(post_url)
+        
+        # Scrape comments from each post URL
+        for url in post_urls:
+            print(f"Scraping comments from {url}")
+            scrape_comments(url)
+            time.sleep(2)  # Add delay to prevent being blocked
+        
+    else:
+        print(f"Failed to retrieve the subreddit page. Status code: {response.status_code}")
+
+    
 def get_news_data():
     #bleh bleh news idk
     BASE_URL     = 'https://newsapi.org/v2/'
@@ -196,7 +251,7 @@ def plotstock(api_client):
     closing_prices = [float(data['Time Series (Daily)'][date]['4. close']) for date in dates]
     symbol = data['Meta Data']['2. Symbol']
 
-    #This method needs to be moved elsewhere
+    # This method needs to be moved elsewhere
     consecutive_lower_closes = []
     consecutive_count = 0
     for i in range(1, len(closing_prices)):
@@ -305,13 +360,13 @@ def main(args):
     # Main method creates the api_client objects and kicks off argparse actions.
 
     ticker, news, config, dummy, gui, webscraper = args
-    api_client = APIClient(config, ticker, dummy, news)
+    api_client = APIClient(config, ticker, dummy, news, webscraper)
 
     api_client.test()
-    api_client.get_ticker()
-    api_client.get_news_keywords()
-
-    plotstock(api_client)
+    get_reddit_data()
+    #api_client.get_ticker()
+    #api_client.get_news_keywords()
+    #plotstock(api_client)
     
 
 
