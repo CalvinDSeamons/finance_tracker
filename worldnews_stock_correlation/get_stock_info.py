@@ -6,6 +6,7 @@ import matplotlib.cbook as cbook
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import pandas as pd
+import praw
 import requests
 import sys
 import time
@@ -17,7 +18,6 @@ from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from newsapi import NewsApiClient
 from matplotlib.offsetbox import AnnotationBbox, TextArea
-
 
 
 class APIClient:
@@ -36,6 +36,10 @@ class APIClient:
         self.reddit_api_key    = self.config['keys']['reddit_data_api_key']
         self.fb_api_key        = self.config['keys']['facebook_data_api_key']
         self.instagram_api_key = self.config['keys']['instagram_data_api_key']
+        # Loading in Reddit Configs.
+        self.client_id     = self.config['reddit']['client_id']
+        self.client_secret = self.config['reddit']['client_secret']
+        self.user_agent    = self.config['reddit']['user_agent']
 
 
     def load_config(self, config_file):
@@ -103,49 +107,6 @@ def get_stock_data(api_client):
         
     return data
 
-
-# Function to scrape comments from a post URL
-def scrape_comments(post_url):
-    response = requests.get(post_url, headers=headers)
-    soup = BeautifulSoup(response.content, 'html.parser')
-    
-    # Extract comments - the class might need to be updated as per current Reddit structure
-    comments = soup.find_all('div', class_='Comment')
-    
-    for comment in comments:
-        comment_text = comment.find('p')
-        if comment_text:
-            print(comment_text.get_text())
-
-def get_reddit_data():
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
-    # URL of the subreddit
-    subreddit_url = 'https://www.reddit.com/r/learnpython/'
-    response = requests.get(subreddit_url, headers=headers)
-    
-    if response.status_code == 200:
-        soup = BeautifulSoup(response.content, 'html.parser')
-        
-        # Extract post URLs - the class might need to be updated as per current Reddit structure
-        posts = soup.find_all('div', class_='Post')
-        
-        post_urls = []
-        for post in posts:
-            post_url_tag = post.find('a', class_='SQnoC3ObvgnGjWt90zD9Z')
-            if post_url_tag:
-                post_url = 'https://www.reddit.com' + post_url_tag['href']
-                post_urls.append(post_url)
-        
-        # Scrape comments from each post URL
-        for url in post_urls:
-            print(f"Scraping comments from {url}")
-            scrape_comments(url)
-            time.sleep(2)  # Add delay to prevent being blocked
-        
-    else:
-        print(f"Failed to retrieve the subreddit page. Status code: {response.status_code}")
-
-    
 def get_news_data():
     #bleh bleh news idk
     BASE_URL     = 'https://newsapi.org/v2/'
@@ -169,27 +130,38 @@ def get_news_data():
     else:
         print('Error:', response.status_code)
 
+def get_reddit_data():
+    # Initialize the Reddit client
+    reddit = praw.Reddit(
+        client_id='',
+        client_secret='',
+        user_agent=''  # e.g., 'myapp by /u/yourusername'
+    )
+
+    # Define the subreddit and the type of posts you want to query
+    subreddit_name = 'learnpython'
+    subreddit = reddit.subreddit(subreddit_name)
+
+    # Example: Get the top 10 hot posts
+    top_posts = subreddit.hot(limit=5)
+
+    # Print the titles and comments of the top posts
+    for post in top_posts:
+        print(f"Title: {post.title}")
+        print(f"Score: {post.score}")
+        print(f"URL: {post.url}")
+        print(f"Comments:")
+        post.comments.replace_more(limit=0)  # Replace "more comments" with actual comments
+        for comment in post.comments.list():
+            print(f"- {comment.body}")
+        print("-" * 40)
+
 def get_news(news_key, beginning_date, ending_date):
     newsapi = NewsApiClient(news_key)
-
-    # Define the time window
-    #start_date = datetime.now() - timedelta(days=7)  # 7 days ago
-    #end_date = datetime.now()  # Current date
-
-    # Format the dates as strings
-    #start_date_str = start_date.strftime('%Y-%m-%d')
-    #end_date_str = end_date.strftime('%Y-%m-%d')
-    #start_date = datetime.strptime(beginning_date, '%Y-%m-%d')
-    #end_date = datetime.strptime(ending_date, '%Y-%m-%d')
-
     end_date = datetime.now()
     start_date = end_date - relativedelta(months=1)
-
     start_date_str = start_date.strftime('%Y-%m-%d')
     end_date_str = end_date.strftime('%Y-%m-%d')
-
-    #print(str(start_date) + "|||||" + str(end_date))
-   
 
     # Query the News API for the top headlines in the specified time window
     #top_headlines = newsapi.get_top_headlines(language='en', country='us')
@@ -207,9 +179,6 @@ def get_news(news_key, beginning_date, ending_date):
 
     # Analyze the articles to determine trending stories
     for article in top_headlines['articles']:
-        # You can define your own criteria for determining trending stories
-        # For example, you can filter by popularity (e.g., number of shares, views, etc.)
-        # Here, we'll consider articles published within the specified time window
         published_at = datetime.strptime(article['publishedAt'], '%Y-%m-%dT%H:%M:%SZ')
         published_date = published_at.date()
         if start_date <= published_at <= end_date:
@@ -219,10 +188,6 @@ def get_news(news_key, beginning_date, ending_date):
     for article in top_headlines['articles']:
         published_at = datetime.strptime(article['publishedAt'], '%Y-%m-%dT%H:%M:%SZ')
         published_date = published_at.date()
-        #print(article['title']+ "-----"+str(published_at))
-        #print(article['description'])
-        #print(article['url'])
-        #print(published_date)
         trending_stories[article['title']]=published_at.date()
     #print(trending_stories)
     return trending_stories
@@ -262,8 +227,6 @@ def plotstock(api_client):
                 consecutive_lower_closes.extend(range(i - consecutive_count - 1, i))
             consecutive_count = 0
 
-    
-    
     key = api_client.get_keylist()
     print(key)
     newskey=key['worldnews']
@@ -341,7 +304,9 @@ def plotstock(api_client):
 
     plt.show()
 
-    #plt.show()
+
+def old_matplot():
+    print("Old")
     # ----------- Old MatPlotLib Method -----------#
     #plt.figure(figsize=(16, 8))
     #plt.plot(dates, closing_prices, marker='o', linestyle='-')
@@ -363,14 +328,10 @@ def main(args):
     api_client = APIClient(config, ticker, dummy, news, webscraper)
 
     api_client.test()
-    get_reddit_data()
     #api_client.get_ticker()
     #api_client.get_news_keywords()
     #plotstock(api_client)
     
-
-
-
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Command line inputs for stockapp")
@@ -379,7 +340,7 @@ if __name__ == "__main__":
     parser.add_argument("--news",   "-n", nargs='*', type=str, help="Keywords to associate to online news. Usage: --news=Biden,apple,Gaza,Planecrash")
     parser.add_argument("--config", "-c", help="Yaml Configuration file containing the api keys. "
                                                "This will override default config. Usage: --config='path_to_your_config"
-                                               , default='../configs/worldnews_stock__correlation.yaml')
+                                               , default='../configs/api-client.yaml')
     parser.add_argument("--dummy",  "-d", action='store_true', help="If APIs request limit has been reached dummy will use saved static data. "
                                                                      "Usage: -d or --dummy")
     parser.add_argument("--gui", "-g", action='store_true', help="Launches a user GUI, flags such as ticker, and news will be overridden. "
