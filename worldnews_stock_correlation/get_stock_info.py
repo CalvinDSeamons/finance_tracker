@@ -19,6 +19,9 @@ from dateutil.relativedelta import relativedelta
 from newsapi import NewsApiClient
 from matplotlib.offsetbox import AnnotationBbox, TextArea
 
+#Imports for other scripts in the stocksleuth app.
+from tkintergui import launch_gui
+
 
 class APIClient:
     # APIClient contains the argparser data, api keys, as well as unique functions for plotting data. 
@@ -327,7 +330,10 @@ def main(args):
     ticker, news, config, dummy, gui, webscraper = args
     api_client = APIClient(config, ticker, dummy, news, webscraper)
 
-    api_client.test()
+    if gui:
+        launch_gui()
+
+    #api_client.test()
     #api_client.get_ticker()
     #api_client.get_news_keywords()
     #plotstock(api_client)
@@ -336,7 +342,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Command line inputs for stockapp")
 
-    parser.add_argument("--ticker", "-t", type=str, help="Stock Market Ticker, This value is required. Usage: --ticker=AAPL",required=True)
+    parser.add_argument("--ticker", "-t", type=str, help="Stock Market Ticker, This value is required. Usage: --ticker=AAPL")
     parser.add_argument("--news",   "-n", nargs='*', type=str, help="Keywords to associate to online news. Usage: --news=Biden,apple,Gaza,Planecrash")
     parser.add_argument("--config", "-c", help="Yaml Configuration file containing the api keys. "
                                                "This will override default config. Usage: --config='path_to_your_config"
