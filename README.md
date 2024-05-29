@@ -1,10 +1,10 @@
 # StockSleuth: Unveiling Market Insights - A Fusion of Stock Analysis and Web Intelligence
 ***
 ### Introduction
-This repository is a collection of scripts intended for analyzing world events, social media posts/trends, and other potentially influential indicators to compare against market trends. In essence this is web intelligence and how it can relate to the stock market and other finicial institutions. 
+This repository is a collection of scripts intended for analyzing world events, social media posts/trends, and other potentially influential indicators to compare against market trends. 
 
 
-This software requires a lot of imports I recommend setting up a python virtual environment as follows: 
+This software requires a lot of imports, I recommend setting up a python virtual environment as follows: 
 ```bash
 git clone $this_repository/
 cd finance_tracker
@@ -23,8 +23,8 @@ Below is a list of apis and accounts needed to use this software. Once obtained 
         - Assistance with? -- API support an inqueries.
         - What Position? -- I am a Developer. 
         - Inquiry? -- I want to register to use the free tier of the Reddit API.
-        - OAUTH Cleint ID? -- Give ID given during creation of Reddit App "stocksleuth" above.
-        - You will be emailed Reddit Client-Secret, you now have all three pieces to use RedditAPI as defined in api-client.yaml
+        - OAUTH Cleint ID? -- Give ID, This is emailed to you after the creation of the Reddit App "stocksleuth" above.
+        - You can find the Reddit Client-Secret on the Reddit App page, you now have all three pieces to use RedditAPI as defined in api-client.yaml
 
 Run ```python3 get_stock_info.py -h ``` to get a list of avaible flags, use ```--gui``` or ```-g``` to launch the GUI if you dont like the command line.
 
