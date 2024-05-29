@@ -330,13 +330,14 @@ def main(args):
     ticker, news, config, dummy, gui, webscraper = args
     api_client = APIClient(config, ticker, dummy, news, webscraper)
 
-    if gui:
+    if gui: # If the user wants the gui, launch tkinter. Data will be set through there. 
         launch_gui()
+        quit()
 
     #api_client.test()
     #api_client.get_ticker()
     #api_client.get_news_keywords()
-    #plotstock(api_client)
+    plotstock(api_client)
     
 if __name__ == "__main__":
 

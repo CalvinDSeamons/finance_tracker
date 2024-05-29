@@ -2,58 +2,79 @@
 
 import tkinter as tk
 from tkinter import ttk
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import matplotlib.pyplot as plt
+import json
 
 import os
 os.environ['TK_SILENCE_DEPRECATION'] = '1'
 
-class stocksleuth_gui:
+class stocksleuth_gui(tk.Tk):
     
 
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Stock Sleuth")
-        self.root.geometry("400x300")
-        # Initialize the GUI components
-        self.setup_gui()
+    def __init__(self):
+        super().__init__()
+        self.title("StockSleuth")
+        self.geometry("800x600")
+        self.configure(bg='gray')
 
-    def setup_gui(self):
-        self.label1 = ttk.Label(self.root, text="Input 1:")
-        self.label1.pack(pady=5)
+        # Input frame
+        self.input_frame = ttk.Frame(self, width=800, height=100)
+        self.input_frame.pack(side=tk.TOP, fill=tk.X)
 
-        self.input1 = ttk.Entry(self.root)
-        self.input1.pack(pady=5)
+        # Label and input field
+        self.label = ttk.Label(self.input_frame, text="Enter Stock Symbol:")
+        self.label.pack(side=tk.LEFT, padx=10, pady=10)
 
-        # Create label and input field for the second input
-        self.label2 = ttk.Label(self.root, text="Input 2:")
-        self.label2.pack(pady=5)
+        self.input_field = ttk.Entry(self.input_frame, width=20)
+        self.input_field.pack(side=tk.LEFT, padx=10, pady=10)
 
-        self.input2 = ttk.Entry(self.root)
-        self.input2.pack(pady=5)
+        # Submit button
+        self.submit_button = ttk.Button(self.input_frame, text="Submit", command=self.fetch_and_plot_data)
+        self.submit_button.pack(side=tk.LEFT, padx=10, pady=10)
 
-        self.submit_button = ttk.Button(self.root, text="Submit", command=self.on_submit)
-        self.submit_button.pack(pady=10)
+        # Plot frame
+        self.plot_frame = ttk.Frame(self, width=800, height=500)
+        self.plot_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
-        # Create the output field to show messages
-        self.output_label = ttk.Label(self.root, text="", foreground="blue")
-        self.output_label.pack(pady=10)
+    def fetch_and_plot_data(self):
+        # Simulating fetching JSON data (you can replace this with actual API calls)
+        stock_symbol = self.input_field.get()
+        with open('../dummy_data/AAPL.json', 'r') as file:
+                data = json.load(file)
+       
+        
+        dates = []
+        close_prices = []
+        
+        for date, values in data["Time Series (Daily)"].items():
+            dates.append(date)
+            close_prices.append(float(values["4. close"]))
 
-    def on_submit(self):
-        # Get the values from the input fields
-        self.var1 = self.input1.get()
-        self.var2 = self.input2.get()
+        self.plot_data(dates, close_prices)
 
-        # Show a message in the output field
-        if self.var1 and self.var2:
-            self.output_label.config(text="Submission successful!")
-            print(f"Input 1: {self.var1}")
-            print(f"Input 2: {self.var2}")
-        else:
-            self.output_label.config(text="Please fill in both input fields.", foreground="red")
+    def plot_data(self, dates, close_prices):
+        fig = Figure(figsize=(8, 6), dpi=100)
+        ax = fig.add_subplot(111)
+        ax.plot(dates, close_prices, marker='o')
+        ax.set_title("Stock Prices Over Time")
+        ax.set_xlabel("Date")
+        ax.set_ylabel("Close Price")
+        ax.grid(True)
+        
+        # Clear previous plot
+        for widget in self.plot_frame.winfo_children():
+            widget.destroy()
+        
+        # Add new plot
+        canvas = FigureCanvasTkAgg(fig, master=self.plot_frame)
+        canvas.draw()
+        canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
-    def on_button_click(self):
-        self.label.config(text="Button Clicked!")
+
 
 def launch_gui():
     root = tk.Tk()
-    app = stocksleuth_gui(root)
+    app = stocksleuth_gui()
     root.mainloop()
