@@ -325,14 +325,14 @@ def old_matplot():
     #plt.show()
 
 def main(args):
-    # Main method creates the api_client objects and kicks off argparse actions.
-
     ticker, news, config, dummy, gui, webscraper = args
-    api_client = APIClient(config, ticker, dummy, news, webscraper)
-
+    print("WTF")
+    # Main method creates the api_client objects and kicks off argparse actions.
     if gui: # If the user wants the gui, launch tkinter. Data will be set through there. 
         launch_gui()
         quit()
+
+    api_client = APIClient(config, ticker, dummy, news, webscraper)
 
     #api_client.test()
     #api_client.get_ticker()
