@@ -20,8 +20,9 @@ class stocksleuth_gui:
         # -------------------------------------------------- #
 
         self.root = root
-        self.root.title("Stock and Keyword Plotter")
-        self.root.geometry("800x600")
+        self.root.title("StockSleuth Main Page")
+        self.root.geometry("1000x800")
+
 
         # Create a frame for the plot
         self.plot_frame = tk.Frame(self.root, bg="#a9a9a9")
@@ -52,7 +53,7 @@ class stocksleuth_gui:
         self.keyword_label.grid(row=0, column=2, padx=(10, 2), pady=5, sticky='w')
 
         # Create a dropdown menu for keywords
-        self.keywords = ["goober", "example1", "example2"]
+        self.keywords = ["stocks", "war", "climate change", ]
         self.keyword_var = StringVar(self.footer_frame)
         self.keyword_var.set(self.keywords[0])
         self.keyword_dropdown = ttk.Combobox(self.footer_frame, textvariable=self.keyword_var, values=self.keywords)
@@ -65,6 +66,9 @@ class stocksleuth_gui:
         # Create print button
         self.print_button = tk.Button(self.footer_frame, text="Create Obj.", command=self.display_obj)
         self.print_button.grid(row=0, column=5, padx=(10, 10), pady=5, sticky='w')
+
+        self.help_button = tk.Button(self.footer_frame, text="?", command=self.launch_help_window)
+        self.help_button.grid(row=0, column=6, padx=(10, 10), pady=5, sticky='w')
 
         # Define variables for toggle switches
         self.reddit_var = tk.BooleanVar(value=False)
@@ -99,7 +103,6 @@ class stocksleuth_gui:
         self.newsapi_toggle.grid(row=2, column=3, padx=(0, 20), pady=5, sticky='w')
 
 
-
     def build_api_client(self):
          # This method takes inputs saved via the buttons and returns it for the creation of the apiclient for data access.
          ticker = self.ticker_entry.get()
@@ -112,6 +115,18 @@ class stocksleuth_gui:
 
     def display_obj(self):
          print(self.api_client.get_news_keywords())
+
+    def launch_help_window(self):
+        # This function makes a popup that contains information on following stocks. 
+        # self.help_button['state'] = 'disabled' Need a way to enable/disable button or you can spam infinite help windows oh well.
+        newWindow = tk.Toplevel(self.root)
+        newWindow.title("Command Help Page")
+        newWindow.geometry("775x200")
+        tk.Label(newWindow, text="Stock Ticker: Provide a recognized ticker for the US Stock Market to search.\n"
+                                 "Keyword: Provide keywords to overlay agasint to stock. You can also pick from pre-created lists of words.\n"
+                                 "Submit: Launch the query.\n"
+                                 "Facebook/Reddit/Instagram/News-buttons clicked will be set to true, The program will search these resources for keywords.\n"
+                                 "DummyData will load saved stock as to not make an API Request.\n",justify="left").grid(sticky = 'w', column=0,row=0)
 
 
     def update_plot(self):

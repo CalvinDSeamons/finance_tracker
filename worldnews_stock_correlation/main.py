@@ -16,7 +16,7 @@ def main(args):
        launch_gui()
 
     else:
-        api_client = get_stock_info.APIClient(config, ticker, dummy, news, webscraper)
+        api_client = get_stock_info.APIClient(config, ticker, dummy, news, webscraper) # Create API Obj with argparser.
         #api_client.test()
         #api_client.get_ticker()
         #api_client.get_news_keywords()
