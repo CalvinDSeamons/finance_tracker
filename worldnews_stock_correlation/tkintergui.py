@@ -8,6 +8,8 @@ import tkinter as tk
 
 from tkinter import ttk, StringVar
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
+import matplotlib.dates as mdates
 import get_stock_info
 
 
@@ -27,6 +29,13 @@ class stocksleuth_gui:
         # Create a frame for the plot
         self.plot_frame = tk.Frame(self.root, bg="#a9a9a9")
         self.plot_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+        # Create a canvas and scrollbar
+        self.canvas = tk.Canvas(self.plot_frame)
+        self.scrollbar = tk.Scrollbar(self.plot_frame, orient=tk.HORIZONTAL, command=self.canvas.xview)
+        self.canvas.configure(xscrollcommand=self.scrollbar.set)
+        self.canvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        self.scrollbar.pack(side=tk.BOTTOM, fill=tk.X)
 
         # Create footer frame with a darker gray background
         self.footer_frame = tk.Frame(self.root)
@@ -104,13 +113,75 @@ class stocksleuth_gui:
 
 
     def build_api_client(self):
-         # This method takes inputs saved via the buttons and returns it for the creation of the apiclient for data access.
-         ticker = self.ticker_entry.get()
-         keywords= self.keyword_var.get()
-         config='../configs/api-client.yaml'
-         webscraper=None
-         dummy = self.dummy_data_var.get()
-         self.api_client = get_stock_info.APIClient(config,ticker,dummy,keywords,webscraper) # creates api_cleint obj within tkinter.
+        # This method takes inputs saved via the buttons and returns it for the creation of the apiclient for data access.
+        # Also as this is submit it will graph too.
+        ticker = self.ticker_entry.get()
+        keywords= self.keyword_var.get()
+        config='../configs/api-client.yaml'
+        webscraper=None
+        dummy = self.dummy_data_var.get()
+        self.api_client = get_stock_info.APIClient(config,ticker,dummy,keywords,webscraper) # creates api_cleint obj within tkinter.
+        # Declare empt json files for plotting data.
+        dummy_data  = {}
+        reddit_data = {}
+        stock_data  = {}
+        # Check which sliders are true and retrieve data. 
+        if self.dummy_data_var.get() == True: # If the dummy slider is true
+            data = get_stock_info.get_dummy_data(self.api_client)
+        else:
+            data = get_stock_info.get_stock_data(self.api_client) # Else query AlphaVantage API for most recent stock Data.
+
+        if self.reddit_var.get() == True: # If the reddit slider is true.
+            reddit_data = get_stock_info.get_reddit_data(self.api_client)
+
+        self.update_plot_v2(data, reddit_data)
+    
+    def update_plot_v2(self, data, reddit_data):
+        time_series = data["Time Series (Daily)"]
+        dates = sorted(time_series.keys())
+        opens = [float(time_series[date]["1. open"]) for date in dates]
+        highs = [float(time_series[date]["2. high"]) for date in dates]
+        lows = [float(time_series[date]["3. low"]) for date in dates]
+        closes = [float(time_series[date]["4. close"]) for date in dates]
+        volumes = [int(time_series[date]["5. volume"]) for date in dates]
+
+        fig = Figure()
+        ax = fig.add_subplot(111)
+        ax.plot(dates, opens, label='Open')
+        ax.plot(dates, highs, label='High')
+        ax.plot(dates, lows, label='Low')
+        ax.plot(dates, closes, label='Close')
+        ax.set_xlabel("Date")
+        ax.set_ylabel("Price")
+        ax.set_title(f"Stock Prices for {data['Meta Data']['2. Symbol']}")
+        ax.legend()
+
+        ax.xaxis.set_major_locator(mdates.DayLocator(interval=1))
+        ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
+        plt.xticks(rotation=45, ha='right')
+
+        # Clear the old plot
+        for widget in self.plot_frame.winfo_children():
+            widget.destroy()
+
+        # Add the new plot
+        canvas = FigureCanvasTkAgg(fig, master=self.plot_frame)
+        canvas.draw()
+        canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
+        self.canvas.create_window((0, 0), window=canvas.get_tk_widget(), anchor='nw')
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+
+        # Enable scrolling and zooming
+        #def on_scroll(event):
+        #    scale_factor = 1.1 if event.delta > 0 else 0.9
+        #    ax.set_xlim([event.xdata - (event.xdata - ax.get_xlim()[0]) * scale_factor,
+        #                 event.xdata + (ax.get_xlim()[1] - event.xdata) * scale_factor])
+        #    ax.set_ylim([event.ydata - (event.ydata - ax.get_ylim()[0]) * scale_factor,
+        #                 event.ydata + (ax.get_ylim()[1] - event.ydata) * scale_factor])
+        #    canvas.draw()
+
+        #fig.canvas.mpl_connect('scroll_event', on_scroll)
 
 
     def display_obj(self):
@@ -160,17 +231,6 @@ class stocksleuth_gui:
             canvas.draw()
 
         fig.canvas.mpl_connect('scroll_event', on_scroll)
-
-def build_api_client(self):
-        # This method takes the tkinter input fields values and builds the API client obejct from get_stock_info.py
-        config='../configs/api-client.yaml' #This is sloppy but works for now.
-        news = self.keywords
-        webscraper=None
-        dummy=True
-        ticker=self.ticker_entry
-        print(self.keywords)
-        api_client = APIClient(config,ticker,dummy,news,webscraper)
-
 
 def launch_gui():
     root = tk.Tk()
