@@ -90,7 +90,7 @@ def error_exit(message, exit_code=1):
 
 
 def get_stock_data(api_client):
-
+    print("#"*25)
     keys=api_client.get_keylist()
     stock_key = keys['stockticker']
     url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={api_client.get_ticker()}&apikey={stock_key}'
@@ -102,39 +102,53 @@ def get_stock_data(api_client):
             error_message = "Check to make sure your Ticker is valid and your apikey is correct"
             print(f"Error: {error_message}")
             quit()
-        else:
-            # Process the data
-            print(data)
     else:
         print("Error: Failed to fetch data from Alpha Vantage API")
-        
+    print(data)  
     return data
 
-def get_reddit_data():
+def get_reddit_data(api_client):
     # Initialize the Reddit client
     reddit = praw.Reddit(
-        client_id='',
-        client_secret='',
-        user_agent=''  # e.g., 'myapp by /u/yourusername'
+        client_id=api_client.client_id,
+        client_secret=api_client.client_secret,
+        user_agent=api_client.user_agent
     )
 
-    # Define the subreddit and the type of posts you want to query
-    subreddit_name = 'learnpython'
-    subreddit = reddit.subreddit(subreddit_name)
+    subreddit = reddit.subreddit('stocks') # Dont use Stock it gets you data on soup and shit...
+    top_posts = subreddit.hot(limit=1)
 
-    # Example: Get the top 10 hot posts
-    top_posts = subreddit.hot(limit=5)
-
-    # Print the titles and comments of the top posts
+    def get_comments(submission):
+        submission.comments.replace_more(limit=None)
+        comments = []
+        for comment in submission.comments.list():
+            comments.append({
+                'author': str(comment.author),
+                'body': comment.body,
+                'score': comment.score,
+                'created_utc': comment.created_utc
+            })
+        return comments
+    data = []
     for post in top_posts:
-        print(f"Title: {post.title}")
-        print(f"Score: {post.score}")
-        print(f"URL: {post.url}")
-        print(f"Comments:")
-        post.comments.replace_more(limit=0)  # Replace "more comments" with actual comments
-        for comment in post.comments.list():
-            print(f"- {comment.body}")
-        print("-" * 40)
+        post_data = {
+            'id': post.id,
+            'title': post.title,
+            'score': post.score,
+            'url': post.url,
+            'num_comments': post.num_comments,
+            'created_utc': post.created_utc,
+            'author': str(post.author),
+            'comments': get_comments(post)
+        }
+        data.append(post_data)
+
+    # Convert to JSON
+    json_data = json.dumps(data, indent=4)
+
+    # Print or save the JSON data
+    print(json_data)
+
 
 def get_news(news_key, beginning_date, ending_date):
     newsapi = NewsApiClient(news_key)
@@ -174,22 +188,6 @@ def get_news(news_key, beginning_date, ending_date):
 
 def plotstock(api_client):
     # Keeping this around for now just with the working consecutive closing price part of the code.
-
-    ticker=api_client.get_ticker()
-
-    if api_client.get_dummy():
-        if ticker == 'NVDA':
-            with open('../dummy_data/NVDA.json', 'r') as file:
-                data = json.load(file)
-        elif ticker == 'AAPL':
-            with open('../dummy_data/AAPL.json', 'r') as file:
-                data = json.load(file)
-        else:
-            print("Error: When using dummy flag specify wither NVDA or AAPL as the ticker.")
-            quit()
-    else:
-        data = get_stock_data(api_client)
-
     dates = []
     closing_prices = []
 
@@ -283,3 +281,15 @@ def plotstock(api_client):
     ax.set_title('Stock Closing Prices with News Overlays')
     ax.legend()
     plt.show()
+
+def get_dummy_data(api_client): # return presaved stock json objs.
+    ticker=api_client.get_ticker()
+    if ticker == 'NVDA' or ticker == 'nvda':
+        with open('../dummy_data/NVDA.json', 'r') as file:
+            return json.load(file)
+    elif ticker == 'AAPL' or ticker == 'aapl':
+        with open('../dummy_data/AAPL.json', 'r') as file:
+          return json.load(file)
+    else:
+        error_exit("Error: When using dummy flag specify wither NVDA or AAPL as the ticker.")
+        
