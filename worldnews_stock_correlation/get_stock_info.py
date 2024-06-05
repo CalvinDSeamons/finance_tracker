@@ -110,29 +110,6 @@ def get_stock_data(api_client):
         
     return data
 
-def get_news_data():
-    #bleh bleh news idk
-    BASE_URL     = 'https://newsapi.org/v2/'
-    endpoint     = 'everything'
-    params       = {
-                    'q': 'your query here',
-                    'apiKey': news_api_key,
-                   }
-    
-    response = requests.get(BASE_URL + endpoint, params=params)
-
-    if response.status_code == 200:
-        data = response.json()
-        articles = data['articles']
-    
-        for article in articles:
-            print(article['title'])
-            print(article['description'])
-            print(article['url'])
-            print('---')
-    else:
-        print('Error:', response.status_code)
-
 def get_reddit_data():
     # Initialize the Reddit client
     reddit = praw.Reddit(
@@ -196,6 +173,7 @@ def get_news(news_key, beginning_date, ending_date):
     return trending_stories
 
 def plotstock(api_client):
+    # Keeping this around for now just with the working consecutive closing price part of the code.
 
     ticker=api_client.get_ticker()
 
@@ -304,57 +282,4 @@ def plotstock(api_client):
     ax.set_ylabel('Closing Price')
     ax.set_title('Stock Closing Prices with News Overlays')
     ax.legend()
-
     plt.show()
-
-
-def old_matplot():
-    print("Old")
-    # ----------- Old MatPlotLib Method -----------#
-    #plt.figure(figsize=(16, 8))
-    #plt.plot(dates, closing_prices, marker='o', linestyle='-')
-
-    #plt.scatter([dates[i] for i in consecutive_lower_closes], 
-    #        [closing_prices[i] for i in consecutive_lower_closes], 
-    #        color='red', zorder=5, label='Consecutive Lower Closes')
-
-    #plt.title(symbol+' Closing Prices')
-    #plt.xlabel('Date',rotation=135)
-    #plt.ylabel('Closing Price ($)')
-    #plt.tight_layout()
-    #plt.show()
-
-def main(args):
-    ticker, news, config, dummy, gui, webscraper = args
-    print("WTF")
-    # Main method creates the api_client objects and kicks off argparse actions.
-    if gui: # If the user wants the gui, launch tkinter. Data will be set through there. 
-        launch_gui()
-        quit()
-
-    api_client = APIClient(config, ticker, dummy, news, webscraper)
-
-    #api_client.test()
-    #api_client.get_ticker()
-    #api_client.get_news_keywords()
-    plotstock(api_client)
-    
-if __name__ == "__main__":
-
-    parser = argparse.ArgumentParser(description="Command line inputs for stockapp")
-
-    parser.add_argument("--ticker", "-t", type=str, help="Stock Market Ticker, This value is required. Usage: --ticker=AAPL")
-    parser.add_argument("--news",   "-n", nargs='*', type=str, help="Keywords to associate to online news. Usage: --news=Biden,apple,Gaza,Planecrash")
-    parser.add_argument("--config", "-c", help="Yaml Configuration file containing the api keys. "
-                                               "This will override default config. Usage: --config='path_to_your_config"
-                                               , default='../configs/api-client.yaml')
-    parser.add_argument("--dummy",  "-d", action='store_true', help="If APIs request limit has been reached dummy will use saved static data. "
-                                                                     "Usage: -d or --dummy")
-    parser.add_argument("--gui", "-g", action='store_true', help="Launches a user GUI, flags such as ticker, and news will be overridden. "
-                                                                  "Usage: -g ot --gui")
-    parser.add_argument("--webscraper","-ws", nargs='*', type=str, help="Keywords to associte to online news, using webscraping instead of apis, slower but more data. "
-                                                                        "Usage: --webscraper=Turtle, tree, plane" )
-
-    args = parser.parse_args()
-    args=([args.ticker, args.news, args.config, args.dummy, args.gui, args.webscraper])
-    main(args)
