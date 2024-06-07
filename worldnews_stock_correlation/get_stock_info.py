@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import pandas as pd
 import praw
+import re
 import requests
 import sys
 import time
@@ -14,6 +15,7 @@ import warnings
 import yaml
 
 from bs4 import BeautifulSoup
+from collections import Counter
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from newsapi import NewsApiClient
@@ -109,6 +111,8 @@ def get_stock_data(api_client):
 
 def get_reddit_data(api_client):
     # Initialize the Reddit client
+
+    word_headmap = {} # Reddit comment dict of most used words in posts.
     reddit = praw.Reddit(
         client_id=api_client.client_id,
         client_secret=api_client.client_secret,
@@ -116,7 +120,7 @@ def get_reddit_data(api_client):
     )
 
     subreddit = reddit.subreddit('stocks') # Dont use Stock it gets you data on soup and shit...
-    top_posts = subreddit.hot(limit=1)
+    top_posts = subreddit.hot(limit=2) # Set limit on how many posts are returned.
 
     def get_comments(submission):
         submission.comments.replace_more(limit=None)
@@ -131,7 +135,7 @@ def get_reddit_data(api_client):
         return comments
     data = []
     for post in top_posts:
-        post_data = {
+        post_data2 = {
             'id': post.id,
             'title': post.title,
             'score': post.score,
@@ -141,14 +145,35 @@ def get_reddit_data(api_client):
             'author': str(post.author),
             'comments': get_comments(post)
         }
-        data.append(post_data)
+        data.append(post_data2)
 
-    # Convert to JSON
+    get_word_freq(data)
     json_data = json.dumps(data, indent=4)
+   
 
-    # Print or save the JSON data
-    print(json_data)
+def tokenize(text):
+    words = re.findall(r'\b\w+\b', text.lower())
+    return words
 
+def count_comment_words(comments):
+    all_words = []
+    for comment in comments:
+        all_words.extend(tokenize(comment['body']))
+    return Counter(all_words)
+
+def get_word_freq(data):
+
+    results = {}
+    for post in data:
+        title = post['title']
+        comments = post['comments']
+        word_freq = count_comment_words(comments)
+
+        filtered_sorted_word_freq = {word: freq for word, freq in word_freq.items() if freq >= 5}
+        sorted_word_freq = dict(sorted(filtered_sorted_word_freq.items(), key=lambda item: item[1], reverse=True))
+        results[title] = dict(sorted_word_freq)
+
+    print(results)
 
 def get_news(news_key, beginning_date, ending_date):
     newsapi = NewsApiClient(news_key)
