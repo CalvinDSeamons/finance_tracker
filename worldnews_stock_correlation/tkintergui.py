@@ -169,8 +169,8 @@ class stocksleuth_gui:
         canvas.draw()
         canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
-        self.canvas.create_window((0, 0), window=canvas.get_tk_widget(), anchor='nw')
-        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+        #self.canvas.create_window((0, 0), window=canvas.get_tk_widget(), anchor='nw')
+        #self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 
         # Enable scrolling and zooming
         #def on_scroll(event):
