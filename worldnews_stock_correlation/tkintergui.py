@@ -24,7 +24,9 @@ class stocksleuth_gui:
 
         self.root = root
         self.root.title("StockSleuth Main Page")
-        self.root.geometry("1000x800")
+        self.width = self.root.winfo_screenwidth()
+        self.height = self.root.winfo_screenheight()
+        self.root.geometry('%dx%d+0+0' % (self.width,self.height*.75))
 
 
         # Create a frame for the plot
@@ -139,16 +141,14 @@ class stocksleuth_gui:
     
     def update_plot_v2(self, data, reddit_data):
         time_series = data["Time Series (Daily)"]
-        dates = sorted(time_series.keys())
-        opens = [float(time_series[date]["1. open"]) for date in dates]
-        highs = [float(time_series[date]["2. high"]) for date in dates]
-        lows = [float(time_series[date]["3. low"]) for date in dates]
-        closes = [float(time_series[date]["4. close"]) for date in dates]
-        volumes = [int(time_series[date]["5. volume"]) for date in dates]
+        dates = sorted(time_series.keys(), reverse=True)
+        dates = [mdates.datestr2num(date) for date in dates]  # Convert dates to matplotlib format
+        opens = [float(time_series[date]["1. open"]) for date in time_series]
+        highs = [float(time_series[date]["2. high"]) for date in time_series]
+        lows = [float(time_series[date]["3. low"]) for date in time_series]
+        closes = [float(time_series[date]["4. close"]) for date in time_series]
 
-        # Create a figure with a large width
-        fig, ax = plt.subplots(figsize=(200, 6))  # Width is large to allow scrolling
-
+        fig, ax = plt.subplots(figsize=(24, 8))  # Create a large width figure
         ax.plot(dates, opens, label='Open')
         ax.plot(dates, highs, label='High')
         ax.plot(dates, lows, label='Low')
@@ -160,10 +160,10 @@ class stocksleuth_gui:
 
         ax.xaxis.set_major_locator(mdates.DayLocator(interval=1))
         ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
-        plt.xticks(rotation=45, ha='right')
+        plt.xticks(rotation=90, ha='right')
 
-        # Adjust subplots to fit in the figure area.
-        plt.subplots_adjust(bottom=0.2)
+        # Adjust subplots to fit in the figure area
+        plt.subplots_adjust(bottom=0.25)
 
         # Clear the old plot
         for widget in self.canvas.winfo_children():
@@ -176,54 +176,7 @@ class stocksleuth_gui:
 
         # Configure scroll region to fit the plot
         self.canvas.create_window((0, 0), window=canvas.get_tk_widget(), anchor='nw')
-        self.canvas.configure(scrollregion=(0, 0, 10000, 600))  # Width matches the figure width
-
-        """ time_series = data["Time Series (Daily)"]
-        dates = sorted(time_series.keys())
-        opens = [float(time_series[date]["1. open"]) for date in dates]
-        highs = [float(time_series[date]["2. high"]) for date in dates]
-        lows = [float(time_series[date]["3. low"]) for date in dates]
-        closes = [float(time_series[date]["4. close"]) for date in dates]
-        volumes = [int(time_series[date]["5. volume"]) for date in dates]
-
-        fig = Figure()
-        ax = fig.add_subplot(111)
-        ax.plot(dates, opens, label='Open')
-        ax.plot(dates, highs, label='High')
-        ax.plot(dates, lows, label='Low')
-        ax.plot(dates, closes, label='Close')
-        ax.set_xlabel("Date")
-        ax.set_ylabel("Price")
-        ax.set_title(f"Stock Prices for {data['Meta Data']['2. Symbol']}")
-        ax.legend()
-
-        ax.xaxis.set_major_locator(mdates.DayLocator(interval=1))
-        ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
-        plt.xticks(rotation=45, ha='right')
- """
-        # Clear the old plot
-        #for widget in self.plot_frame.winfo_children():
-        #    widget.destroy()
-
-        # Add the new plot
-        #canvas = FigureCanvasTkAgg(fig, master=self.plot_frame)
-        #canvas.draw()
-        #canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
-
-        #self.canvas.create_window((0, 0), window=canvas.get_tk_widget(), anchor='nw')
-        #self.canvas.configure(scrollregion=self.canvas.bbox("all"))
-
-        # Enable scrolling and zooming
-        #def on_scroll(event):
-        #    scale_factor = 1.1 if event.delta > 0 else 0.9
-        #    ax.set_xlim([event.xdata - (event.xdata - ax.get_xlim()[0]) * scale_factor,
-        #                 event.xdata + (ax.get_xlim()[1] - event.xdata) * scale_factor])
-        #    ax.set_ylim([event.ydata - (event.ydata - ax.get_ylim()[0]) * scale_factor,
-        #                 event.ydata + (ax.get_ylim()[1] - event.ydata) * scale_factor])
-        #    canvas.draw()
-
-        #fig.canvas.mpl_connect('scroll_event', on_scroll)
-
+        self.canvas.configure(scrollregion=(0, 0, 2400, 800))  # Width matches the figure width
 
     def display_obj(self):
          print(self.api_client.get_news_keywords())
@@ -239,40 +192,6 @@ class stocksleuth_gui:
                                  "Submit: Launch the query.\n"
                                  "Facebook/Reddit/Instagram/News-buttons clicked will be set to true, The program will search these resources for keywords.\n"
                                  "DummyData will load saved stock as to not make an API Request.\n",justify="left").grid(sticky = 'w', column=0,row=0)
-
-
-    def update_plot(self):
-        ticker = self.ticker_entry.get()
-        keyword = self.keyword_var.get()
-
-        # Generate sample data for plotting
-        x = np.linspace(0, 10, 100)
-        y = np.sin(x) + np.random.normal(0, 0.1, 100)
-
-        fig, ax = plt.subplots()
-        ax.plot(x, y)
-        ax.set_title(f"Plot for Ticker: {ticker} and Keyword: {keyword}")
-
-        # Clear the old plot
-        for widget in self.plot_frame.winfo_children():
-            widget.destroy()
-
-        # Add the new plot
-        canvas = FigureCanvasTkAgg(fig, master=self.plot_frame)
-        canvas.draw()
-        canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
-       
-
-        # Enable scrolling and zooming
-        def on_scroll(event):
-            scale_factor = 1.1 if event.delta > 0 else 0.9
-            ax.set_xlim([event.xdata - (event.xdata - ax.get_xlim()[0]) * scale_factor,
-                         event.xdata + (ax.get_xlim()[1] - event.xdata) * scale_factor])
-            ax.set_ylim([event.ydata - (event.ydata - ax.get_ylim()[0]) * scale_factor,
-                         event.ydata + (ax.get_ylim()[1] - event.ydata) * scale_factor])
-            canvas.draw()
-
-        fig.canvas.mpl_connect('scroll_event', on_scroll)
 
 def launch_gui():
     root = tk.Tk()
