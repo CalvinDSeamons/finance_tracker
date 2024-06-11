@@ -10,6 +10,7 @@ from tkinter import ttk, StringVar
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 import matplotlib.dates as mdates
+import matplotlib.backends.backend_tkagg as tkagg
 import get_stock_info
 
 
@@ -31,7 +32,7 @@ class stocksleuth_gui:
         self.plot_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
         # Create a canvas and scrollbar
-        self.canvas = tk.Canvas(self.plot_frame)
+        self.canvas = tk.Canvas(self.plot_frame, bg='white')
         self.scrollbar = tk.Scrollbar(self.plot_frame, orient=tk.HORIZONTAL, command=self.canvas.xview)
         self.canvas.configure(xscrollcommand=self.scrollbar.set)
         self.canvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
@@ -145,6 +146,46 @@ class stocksleuth_gui:
         closes = [float(time_series[date]["4. close"]) for date in dates]
         volumes = [int(time_series[date]["5. volume"]) for date in dates]
 
+        # Create a figure with a large width
+        fig, ax = plt.subplots(figsize=(200, 6))  # Width is large to allow scrolling
+
+        ax.plot(dates, opens, label='Open')
+        ax.plot(dates, highs, label='High')
+        ax.plot(dates, lows, label='Low')
+        ax.plot(dates, closes, label='Close')
+        ax.set_xlabel("Date")
+        ax.set_ylabel("Price")
+        ax.set_title(f"Stock Prices for {data['Meta Data']['2. Symbol']}")
+        ax.legend()
+
+        ax.xaxis.set_major_locator(mdates.DayLocator(interval=1))
+        ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
+        plt.xticks(rotation=45, ha='right')
+
+        # Adjust subplots to fit in the figure area.
+        plt.subplots_adjust(bottom=0.2)
+
+        # Clear the old plot
+        for widget in self.canvas.winfo_children():
+            widget.destroy()
+
+        # Create a new figure canvas and attach it to the Tkinter canvas
+        canvas = FigureCanvasTkAgg(fig, master=self.canvas)
+        canvas.draw()
+        canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+        # Configure scroll region to fit the plot
+        self.canvas.create_window((0, 0), window=canvas.get_tk_widget(), anchor='nw')
+        self.canvas.configure(scrollregion=(0, 0, 10000, 600))  # Width matches the figure width
+
+        """ time_series = data["Time Series (Daily)"]
+        dates = sorted(time_series.keys())
+        opens = [float(time_series[date]["1. open"]) for date in dates]
+        highs = [float(time_series[date]["2. high"]) for date in dates]
+        lows = [float(time_series[date]["3. low"]) for date in dates]
+        closes = [float(time_series[date]["4. close"]) for date in dates]
+        volumes = [int(time_series[date]["5. volume"]) for date in dates]
+
         fig = Figure()
         ax = fig.add_subplot(111)
         ax.plot(dates, opens, label='Open')
@@ -159,15 +200,15 @@ class stocksleuth_gui:
         ax.xaxis.set_major_locator(mdates.DayLocator(interval=1))
         ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
         plt.xticks(rotation=45, ha='right')
-
+ """
         # Clear the old plot
-        for widget in self.plot_frame.winfo_children():
-            widget.destroy()
+        #for widget in self.plot_frame.winfo_children():
+        #    widget.destroy()
 
         # Add the new plot
-        canvas = FigureCanvasTkAgg(fig, master=self.plot_frame)
-        canvas.draw()
-        canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+        #canvas = FigureCanvasTkAgg(fig, master=self.plot_frame)
+        #canvas.draw()
+        #canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
         #self.canvas.create_window((0, 0), window=canvas.get_tk_widget(), anchor='nw')
         #self.canvas.configure(scrollregion=self.canvas.bbox("all"))
@@ -220,6 +261,7 @@ class stocksleuth_gui:
         canvas = FigureCanvasTkAgg(fig, master=self.plot_frame)
         canvas.draw()
         canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+       
 
         # Enable scrolling and zooming
         def on_scroll(event):
