@@ -12,6 +12,7 @@ from matplotlib.figure import Figure
 import matplotlib.dates as mdates
 import matplotlib.backends.backend_tkagg as tkagg
 import matplotlib.ticker as plot_ticker
+import mplcursors
 import get_stock_info
 
 
@@ -156,27 +157,43 @@ class stocksleuth_gui:
 
         #fig, (ax, ax2) = plt.subplots(2, 1, figsize=(24, 8), sharex=True, gridspec_kw={'height_ratios': [10, 1]})
 
-        ax.plot(dates, opens, label='Open')
-        ax.plot(dates, highs, label='High')
-        ax.plot(dates, lows, label='Low')
-        ax.plot(dates, closes, label='Close')
+        #ax.plot(dates, opens, label='Open')
+        #ax.plot(dates, highs, label='High')
+        #ax.plot(dates, lows, label='Low')
+        #ax.plot(dates, closes, label='Close')
+        ax.plot(dates, closes, color='gray', alpha=0.5, linewidth=0.5)
+        ax.scatter(dates, closes, color='blue', label='Close Price', s=30)
         ax.set_xlabel("Date")
         ax.set_ylabel("Price")
         ax.set_title(f"Stock Prices for {data['Meta Data']['2. Symbol']}")
         ax.legend()
 
-        # Create a second y-axis for volume
-        """ax2 = ax.twinx()
-        ax2.bar(dates, volumes, alpha=0.3, color='gray', width=0.6, label='Volume')
-        ax2.set_ylabel('Volume')
-        ax2.set_ylim([1000000, 100000000])
-        ax2.yaxis.set_major_locator(plot_ticker.MaxNLocator(integer=True))
-        ax2.legend(loc='upper right')"""
-
-
         ax.xaxis.set_major_locator(mdates.DayLocator(interval=1))
         ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
         plt.xticks(rotation=90, ha='right')
+
+
+        # Create a second y-axis for volume
+        ax2 = ax.twinx()
+        ax2.bar(dates, volumes, alpha=0.3, color='gray', width=0.6, label='Volume')
+        ax2.set_ylabel('Volume')
+        ax2.set_ylim([1000000, 150000000])
+        ax2.yaxis.set_major_locator(plot_ticker.MaxNLocator(integer=True))
+        ax2.legend(loc='upper right')
+        ax2.get_legend().remove()
+
+
+        cursor = mplcursors.cursor(ax.scatter(dates, closes, color='blue', s=30), hover=True)
+        @cursor.connect("add")
+        def on_add(sel):
+            index = sel.target.index
+            date = mdates.num2date(dates[index]).strftime('%Y-%m-%d')
+            close_price = closes[index]
+            volume = volumes[index]
+            sel.annotation.set(text=f"Date: {date}\nClose: {close_price}\nVolume: {volume}", 
+                               position=(0, 30), 
+                               anncoords="offset points")
+
 
         # Adjust subplots to fit in the figure area
         plt.subplots_adjust(bottom=0.25)
