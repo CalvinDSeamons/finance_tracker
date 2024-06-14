@@ -11,6 +11,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 import matplotlib.dates as mdates
 import matplotlib.backends.backend_tkagg as tkagg
+import matplotlib.ticker as plot_ticker
 import get_stock_info
 
 
@@ -23,10 +24,10 @@ class stocksleuth_gui:
         # -------------------------------------------------- #
 
         self.root = root
-        self.root.title("StockSleuth Main Page")
-        self.width = self.root.winfo_screenwidth()
-        self.height = self.root.winfo_screenheight()
-        self.root.geometry('%dx%d+0+0' % (self.width,self.height*.75))
+        self.root.title("StockSleuth")
+        self.width = self.root.winfo_screenwidth() # Grab screen width
+        self.height = self.root.winfo_screenheight() # Grab screen height
+        self.root.geometry('%dx%d+0+0' % (self.width,self.height*.75)) # Screen takes up 100% width and 75% of height. 
 
 
         # Create a frame for the plot
@@ -135,11 +136,13 @@ class stocksleuth_gui:
             data = get_stock_info.get_stock_data(self.api_client) # Else query AlphaVantage API for most recent stock Data.
 
         if self.reddit_var.get() == True: # If the reddit slider is true.
+            # Retrieve Reddit data and apply an overlay. 
             reddit_data = get_stock_info.get_reddit_data(self.api_client)
 
         self.update_plot_v2(data, reddit_data)
     
     def update_plot_v2(self, data, reddit_data):
+        #titles = list(reddit_data.keys())
         time_series = data["Time Series (Daily)"]
         dates = sorted(time_series.keys(), reverse=True)
         dates = [mdates.datestr2num(date) for date in dates]  # Convert dates to matplotlib format
@@ -147,8 +150,12 @@ class stocksleuth_gui:
         highs = [float(time_series[date]["2. high"]) for date in time_series]
         lows = [float(time_series[date]["3. low"]) for date in time_series]
         closes = [float(time_series[date]["4. close"]) for date in time_series]
+        volumes = [float(time_series[date]["5. volume"]) for date in time_series]
 
         fig, ax = plt.subplots(figsize=(24, 8))  # Create a large width figure
+
+        #fig, (ax, ax2) = plt.subplots(2, 1, figsize=(24, 8), sharex=True, gridspec_kw={'height_ratios': [10, 1]})
+
         ax.plot(dates, opens, label='Open')
         ax.plot(dates, highs, label='High')
         ax.plot(dates, lows, label='Low')
@@ -157,6 +164,15 @@ class stocksleuth_gui:
         ax.set_ylabel("Price")
         ax.set_title(f"Stock Prices for {data['Meta Data']['2. Symbol']}")
         ax.legend()
+
+        # Create a second y-axis for volume
+        """ax2 = ax.twinx()
+        ax2.bar(dates, volumes, alpha=0.3, color='gray', width=0.6, label='Volume')
+        ax2.set_ylabel('Volume')
+        ax2.set_ylim([1000000, 100000000])
+        ax2.yaxis.set_major_locator(plot_ticker.MaxNLocator(integer=True))
+        ax2.legend(loc='upper right')"""
+
 
         ax.xaxis.set_major_locator(mdates.DayLocator(interval=1))
         ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))

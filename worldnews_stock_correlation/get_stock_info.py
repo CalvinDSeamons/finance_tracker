@@ -92,7 +92,7 @@ def error_exit(message, exit_code=1):
 
 
 def get_stock_data(api_client):
-    print("#"*25)
+    #print("#"*25)
     keys=api_client.get_keylist()
     stock_key = keys['stockticker']
     url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={api_client.get_ticker()}&apikey={stock_key}'
@@ -106,7 +106,7 @@ def get_stock_data(api_client):
             quit()
     else:
         print("Error: Failed to fetch data from Alpha Vantage API")
-    print(data)  
+    #print(data)  
     return data
 
 def get_reddit_data(api_client):
@@ -121,6 +121,11 @@ def get_reddit_data(api_client):
 
     subreddit = reddit.subreddit('stocks') # Dont use Stock it gets you data on soup and shit...
     top_posts = subreddit.hot(limit=2) # Set limit on how many posts are returned.
+
+    # If we want to search reddit we can use the code below, i am not sure how that works in terms of requests. 
+    #search_query = 'Rate My Portfolio'
+    #Perform the search
+    #search_results = subreddit.search(search_query, sort='new', limit=10)
 
     def get_comments(submission):
         submission.comments.replace_more(limit=None)
@@ -147,33 +152,36 @@ def get_reddit_data(api_client):
         }
         data.append(post_data2)
 
-    get_word_freq(data)
+    data = get_word_freq(data)
     json_data = json.dumps(data, indent=4)
+    #print(str(json_data))
+    return json_data
    
 
 def tokenize(text):
+    # Sterilize the words in the comments.  
     words = re.findall(r'\b\w+\b', text.lower())
     return words
 
 def count_comment_words(comments):
+    #using the Counter import we get a dict of number of words.
     all_words = []
     for comment in comments:
         all_words.extend(tokenize(comment['body']))
     return Counter(all_words)
 
 def get_word_freq(data):
-
     results = {}
     for post in data:
         title = post['title']
         comments = post['comments']
         word_freq = count_comment_words(comments)
 
-        filtered_sorted_word_freq = {word: freq for word, freq in word_freq.items() if freq >= 5}
-        sorted_word_freq = dict(sorted(filtered_sorted_word_freq.items(), key=lambda item: item[1], reverse=True))
+        filtered_sorted_word_freq = {word: freq for word, freq in word_freq.items() if freq >= 5} # remove words that occur 5 or less
+        sorted_word_freq = dict(sorted(filtered_sorted_word_freq.items(), key=lambda item: item[1], reverse=True)) # rank highlest to lowest 
         results[title] = dict(sorted_word_freq)
 
-    print(results)
+    return results
 
 def get_news(news_key, beginning_date, ending_date):
     newsapi = NewsApiClient(news_key)
