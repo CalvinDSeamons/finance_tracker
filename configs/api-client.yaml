@@ -7,12 +7,8 @@ keys:
   world_news_api_key: ''
   # Alphavantage.co
   stock_data_api_key: ''
-  # Reddit API Key
-  reddit_data_api_key: '' # This can probably be removed.
-  # FaceBook API Key
-  facebook_data_api_key: ''
-  # Instagram API Key
-  instagram_data_api_key: ''
+  # TweleveData API Key
+  12data: ''
 
 reddit: # Contains the reddit api information. 
   # Client_ID is emailed to you after creating an "app" in reddit. See README for more details.
