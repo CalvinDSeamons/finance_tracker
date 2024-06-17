@@ -17,6 +17,7 @@ You'll now be inside the python virtual environment and can install the needed l
 Below is a list of apis and accounts needed to use this software. Once obtained fill out configs/api-client.yaml<br />
 - [NewsAPI](https://newsapi.org) Free API Key, requires throwaway email.
 - [AlphaVantage](https://www.alphavantage.co) Free API Key, requires throwaway email. 
+- [Twelvedata] (https://twelvedata.com/account) Free API Key, requires email confirmation.
 - [RedditAPI](https://www.reddit.com) Free API Key, create a reddit user, remember username and password.
     - [Reddit-App-Creation](https://www.reddit.com/prefs/apps) Log into reddit and create a reddit app named stocksleuth.
     - [Submit Request for API](https://support.reddithelp.com/hc/en-us/requests/new?ticket_form_id=14868593862164) Fill out this with the following:
@@ -26,6 +27,6 @@ Below is a list of apis and accounts needed to use this software. Once obtained 
         - OAUTH Cleint ID? -- Give ID, This is emailed to you after the creation of the Reddit App "stocksleuth" above.
         - You can find the Reddit Client-Secret on the Reddit App page, you now have all three pieces to use RedditAPI as defined in api-client.yaml
 
-Run ```python3 get_stock_info.py -h ``` to get a list of avaible flags, use ```--gui``` or ```-g``` to launch the GUI if you dont like the command line.
+Run ```python3 main.py -h ``` to get a list of avaible flags, use ```--gui``` or ```-g``` to launch the GUI if you dont like the command line.
 
 
