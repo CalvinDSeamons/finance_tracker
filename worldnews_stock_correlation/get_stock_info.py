@@ -20,6 +20,7 @@ from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from newsapi import NewsApiClient
 from matplotlib.offsetbox import AnnotationBbox, TextArea
+from psaw import PushshiftAPI
 
 #Imports for other scripts in the stocksleuth app.
 from tkintergui import launch_gui
@@ -83,6 +84,16 @@ class APIClient:
         # Returns News API Key.
         return self.news_api_key
     
+    def get_reddit_api_client(self):
+        # To cut down on redudant code this creates the Reddit PRAW endpoint and returns it. 
+        self.reddit = praw.Reddit(
+        client_id=self.client_id,
+        client_secret=self.client_secret,
+        user_agent=self.user_agent
+        )
+        return self.reddit
+        
+    
 # --------------End of API Client Class---------------    
 
 
@@ -113,12 +124,7 @@ def get_reddit_data(api_client):
     # Initialize the Reddit client
 
     word_headmap = {} # Reddit comment dict of most used words in posts.
-    reddit = praw.Reddit(
-        client_id=api_client.client_id,
-        client_secret=api_client.client_secret,
-        user_agent=api_client.user_agent
-    )
-
+    reddit = api_client.get_reddit_api_client()
     subreddit = reddit.subreddit('stocks') # Dont use Stock it gets you data on soup and shit...
     top_posts = subreddit.hot(limit=2) # Set limit on how many posts are returned.
 
@@ -154,9 +160,8 @@ def get_reddit_data(api_client):
 
     data = get_word_freq(data)
     json_data = json.dumps(data, indent=4)
-    #print(str(json_data))
+    print(str(json_data))
     return json_data
-   
 
 def tokenize(text):
     # Sterilize the words in the comments.  
@@ -183,6 +188,25 @@ def get_word_freq(data):
 
     return results
 
+def search_reddit_data(api_client, range, searchwords):
+    """ This method takes in the api_client and a time range and returns reddit posts 
+    api-client: api_client
+    range: time range to search reddit over
+    searchwords: strings to search over
+    """
+    start_date = datetime(2023, 1, 1)
+    end_date = datetime(2023, 12, 31)
+
+    start_epoch = int(start_date.timestamp())
+    end_epoch = int(end_date.timestamp())
+
+
+
+    reddit = api_client.get_reddit_api_client()
+    api = PushshiftAPI(reddit)
+
+
+    
 def get_news(news_key, beginning_date, ending_date):
     newsapi = NewsApiClient(news_key)
     end_date = datetime.now()
@@ -325,4 +349,38 @@ def get_dummy_data(api_client): # return presaved stock json objs.
           return json.load(file)
     else:
         error_exit("Error: When using dummy flag specify wither NVDA or AAPL as the ticker.")
-        
+
+def get_consecutive_down_days(data):
+    # Extract the time series data and convert it to a DataFrame
+    time_series_data = data["Time Series (Daily)"]
+    df = pd.DataFrame.from_dict(time_series_data, orient='index')
+    df.index = pd.to_datetime(df.index)
+    df = df.sort_index()
+
+    # Convert the close prices to numeric
+    df['4. close'] = pd.to_numeric(df['4. close'])
+
+    # Initialize variables to store consecutive down day periods
+    consecutive_down_days = 0
+    start_date = None
+    down_periods = []
+
+    # Iterate through the DataFrame to identify down periods
+    for i in range(1, len(df)):
+        if df['4. close'].iloc[i] < df['4. close'].iloc[i-1]:
+            if consecutive_down_days == 0:
+                start_date = df.index[i-1]
+            consecutive_down_days += 1
+        else:
+            if consecutive_down_days >= 5:
+                end_date = df.index[i-1]
+                down_periods.append((start_date, end_date))
+            consecutive_down_days = 0
+
+    # Check if the last period was a down period
+    if consecutive_down_days >= 5:
+        end_date = df.index[-1]
+        down_periods.append((start_date, end_date))
+
+    return down_periods
+                

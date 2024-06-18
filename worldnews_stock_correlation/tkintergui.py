@@ -78,7 +78,7 @@ class stocksleuth_gui:
         self.submit_button.grid(row=0, column=4, padx=(10, 10), pady=5, sticky='w')
 
         # Create print button
-        self.print_button = tk.Button(self.footer_frame, text="Create Obj.", command=self.display_obj)
+        self.print_button = tk.Button(self.footer_frame, text="Reddit Search", command=self.search_reddit)
         self.print_button.grid(row=0, column=5, padx=(10, 10), pady=5, sticky='w')
 
         self.help_button = tk.Button(self.footer_frame, text="?", command=self.launch_help_window)
@@ -122,7 +122,7 @@ class stocksleuth_gui:
         # Also as this is submit it will graph too.
         ticker = self.ticker_entry.get()
         keywords= self.keyword_var.get()
-        config='../configs/api-client.yaml'
+        config='../configs/api-client2.yaml'
         webscraper=None
         dummy = self.dummy_data_var.get()
         self.api_client = get_stock_info.APIClient(config,ticker,dummy,keywords,webscraper) # creates api_cleint obj within tkinter.
@@ -142,7 +142,7 @@ class stocksleuth_gui:
 
         self.update_plot_v2(data, reddit_data)
     
-    def update_plot_v2(self, data, reddit_data):
+    def update_plot_v2(self, data, reddit_data=None, down_data=None):
         #titles = list(reddit_data.keys())
         time_series = data["Time Series (Daily)"]
         dates = sorted(time_series.keys(), reverse=True)
@@ -152,6 +152,18 @@ class stocksleuth_gui:
         lows = [float(time_series[date]["3. low"]) for date in time_series]
         closes = [float(time_series[date]["4. close"]) for date in time_series]
         volumes = [float(time_series[date]["5. volume"]) for date in time_series]
+        highlight_indices = []
+        
+        if down_data != None:
+            date_ranges_to_highlight = down_data
+            numeric_date_ranges = [(mdates.date2num(start), mdates.date2num(end)) for start, end in date_ranges_to_highlight]
+            
+            for i, date in enumerate(dates):
+             for start, end in numeric_date_ranges:
+                    if start <= date <= end:
+                      highlight_indices.append(i)
+                      break
+
 
         fig, ax = plt.subplots(figsize=(24, 8))  # Create a large width figure
 
@@ -163,6 +175,7 @@ class stocksleuth_gui:
         #ax.plot(dates, closes, label='Close')
         ax.plot(dates, closes, color='gray', alpha=0.5, linewidth=0.5)
         ax.scatter(dates, closes, color='blue', label='Close Price', s=30)
+        ax.scatter([dates[i] for i in highlight_indices], [closes[i] for i in highlight_indices], color='red')
         ax.set_xlabel("Date")
         ax.set_ylabel("Price")
         ax.set_title(f"Stock Prices for {data['Meta Data']['2. Symbol']}")
@@ -171,16 +184,6 @@ class stocksleuth_gui:
         ax.xaxis.set_major_locator(mdates.DayLocator(interval=1))
         ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
         plt.xticks(rotation=90, ha='right')
-
-
-        # Create a second y-axis for volume
-        ax2 = ax.twinx()
-        ax2.bar(dates, volumes, alpha=0.3, color='gray', width=0.6, label='Volume')
-        ax2.set_ylabel('Volume')
-        ax2.set_ylim([1000000, 150000000])
-        ax2.yaxis.set_major_locator(plot_ticker.MaxNLocator(integer=True))
-        ax2.legend(loc='upper right')
-        ax2.get_legend().remove()
 
 
         cursor = mplcursors.cursor(ax.scatter(dates, closes, color='blue', s=30), hover=True)
@@ -193,6 +196,31 @@ class stocksleuth_gui:
             sel.annotation.set(text=f"Date: {date}\nClose: {close_price}\nVolume: {volume}", 
                                position=(0, 30), 
                                anncoords="offset points")
+
+        # Create a second y-axis for volume
+        ax2 = ax.twinx()
+        ax2.bar(dates, volumes, alpha=0.3, color='gray', width=0.6, label='Volume')
+        ax2.set_ylabel('Volume')
+        ax2.set_ylim([1000000, 150000000])
+        ax2.yaxis.set_major_locator(plot_ticker.MaxNLocator(integer=True))
+        ax2.legend(loc='upper right')
+        ax2.get_legend().remove()
+
+        print(str(highlight_indices))
+        if down_data != None:
+            print("TRUE")
+            ax.scatter([dates[i] for i in highlight_indices], [closes[i] for i in highlight_indices], color='red')
+
+        """cursor = mplcursors.cursor(ax.scatter(dates, closes, color='blue', s=30), hover=True)
+        @cursor.connect("add")
+        def on_add(sel):
+            index = sel.target.index
+            date = mdates.num2date(dates[index]).strftime('%Y-%m-%d')
+            close_price = closes[index]
+            volume = volumes[index]
+            sel.annotation.set(text=f"Date: {date}\nClose: {close_price}\nVolume: {volume}", 
+                               position=(0, 30), 
+                               anncoords="offset points")"""
 
 
         # Adjust subplots to fit in the figure area
@@ -225,6 +253,35 @@ class stocksleuth_gui:
                                  "Submit: Launch the query.\n"
                                  "Facebook/Reddit/Instagram/News-buttons clicked will be set to true, The program will search these resources for keywords.\n"
                                  "DummyData will load saved stock as to not make an API Request.\n",justify="left").grid(sticky = 'w', column=0,row=0)
+        
+    def search_reddit(self):
+        # Search_Reddit looks back at reddit posts and finds freq of search term provided
+        ticker = self.ticker_entry.get()
+        keywords= self.keyword_var.get()
+        config='../configs/api-client2.yaml'
+        webscraper=None
+        dummy = self.dummy_data_var.get()
+        self.api_client = get_stock_info.APIClient(config,ticker,dummy,keywords,webscraper) # creates api_cleint obj within tkinter.
+        # Declare empt json files for plotting data.
+        dummy_data  = {}
+        reddit_data = {}
+        stock_data  = {}
+        # Check which sliders are true and retrieve data. 
+        if self.dummy_data_var.get() == True: # If the dummy slider is true
+            data = get_stock_info.get_dummy_data(self.api_client)
+        else:
+            data = get_stock_info.get_stock_data(self.api_client) # Else query AlphaVantage API for most recent stock Data.
+
+        if self.reddit_var.get() == True: # If the reddit slider is true.
+            # Retrieve Reddit data and apply an overlay. 
+            reddit_data = get_stock_info.get_reddit_data(self.api_client)
+
+        bigsad = get_stock_info.get_consecutive_down_days(data)
+        #print(str(bigsad))
+        self.update_plot_v2(data, reddit_data, bigsad)
+
+
+        
 
 def launch_gui():
     root = tk.Tk()
