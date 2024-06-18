@@ -31,7 +31,7 @@ if __name__ == "__main__":
     parser.add_argument("--news",   "-n", nargs='*', type=str, help="Keywords to associate to online news. Usage: --news=Biden,apple,Gaza,Planecrash")
     parser.add_argument("--config", "-c", help="Yaml Configuration file containing the api keys. "
                                                "This will override default config. Usage: --config='path_to_your_config"
-                                               , default='../configs/api-client.yaml')
+                                               , default='../configs/api-client2.yaml')
     parser.add_argument("--dummy",  "-d", action='store_true', help="If APIs request limit has been reached dummy will use saved static data. "
                                                                      "Usage: -d or --dummy")
     parser.add_argument("--gui", "-g", action='store_true', help="Launches a user GUI, flags such as ticker, and news will be overridden. "
