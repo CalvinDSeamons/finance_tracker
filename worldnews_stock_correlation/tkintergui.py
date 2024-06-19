@@ -277,6 +277,7 @@ class stocksleuth_gui:
             reddit_data = get_stock_info.get_reddit_data(self.api_client)
 
         bigsad = get_stock_info.get_consecutive_down_days(data)
+        get_stock_info.search_reddit_data(self.api_client,bigsad,self.keywords)
         #print(str(bigsad))
         self.update_plot_v2(data, reddit_data, bigsad)
 
