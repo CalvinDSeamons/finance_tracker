@@ -194,17 +194,37 @@ def search_reddit_data(api_client, range, searchwords):
     range: time range to search reddit over
     searchwords: strings to search over
     """
-    start_date = datetime(2023, 1, 1)
-    end_date = datetime(2023, 12, 31)
+    start_date = datetime(2024, 5, 29)
+    end_date = datetime(2024, 6, 7)
+    search_terms = 'python'
+    subreddit='learnpython'
+
+    reddit = api_client.get_reddit_api_client()
+    #api = PushshiftAPI(reddit)
 
     start_epoch = int(start_date.timestamp())
     end_epoch = int(end_date.timestamp())
 
+    pushshift_url = (
+        f'https://api.pushshift.io/reddit/search/submission/?q={search_terms}'
+        f'&after={start_epoch}&before={end_epoch}&subreddit={subreddit}&size={100}'
+    )
 
-
-    reddit = api_client.get_reddit_api_client()
-    api = PushshiftAPI(reddit)
-
+    response = requests.get(pushshift_url)
+    data = response.json().get('data', [])
+    
+    # Extract post IDs and fetch more details using PRAW
+    post_ids = [post['id'] for post in data]
+    posts = [reddit.submission(id=post_id) for post_id in post_ids]
+    """search_results =reddit.search_submissions(
+        q=search_terms,
+        subreddit=subreddit,
+        after=start_epoch,
+        before=end_epoch,
+        limit=20  # You can adjust the limit as needed
+    )"""
+    print("here")
+    print(str(posts))
 
     
 def get_news(news_key, beginning_date, ending_date):
