@@ -9,6 +9,9 @@ keys:
   stock_data_api_key: ''
   # TweleveData API Key
   12data: ''
+  # sec-api.io
+  sec-api: '' 
+
 
 reddit: # Contains the reddit api information. 
   # Client_ID is emailed to you after creating an "app" in reddit. See README for more details.

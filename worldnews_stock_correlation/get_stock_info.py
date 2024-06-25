@@ -42,6 +42,7 @@ class APIClient:
         self.reddit_api_key    = self.config['keys']['reddit_data_api_key']
         self.fb_api_key        = self.config['keys']['facebook_data_api_key']
         self.instagram_api_key = self.config['keys']['instagram_data_api_key']
+        self.sec_api_key       = self.config['keys']['sec-api']
         # Loading in Reddit Configs.
         self.client_id     = self.config['reddit']['client_id']
         self.client_secret = self.config['reddit']['client_secret']
@@ -83,6 +84,10 @@ class APIClient:
     def get_news_api(self):
         # Returns News API Key.
         return self.news_api_key
+    
+    def get_sec_api(self):
+        # Returns SEC's API Key.
+        return self.sec_api_key
     
     def get_reddit_api_client(self):
         # To cut down on redudant code this creates the Reddit PRAW endpoint and returns it. 
