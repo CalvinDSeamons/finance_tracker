@@ -193,7 +193,7 @@ def get_word_freq(data):
 
     return results
 
-def search_reddit_data(api_client, range, searchwords):
+def search_reddit_data(api_client, timerange, searchwords):
     """ This method takes in the api_client and a time range and returns reddit posts 
     api-client: api_client
     range: time range to search reddit over
@@ -201,35 +201,32 @@ def search_reddit_data(api_client, range, searchwords):
     """
     start_date = datetime(2024, 5, 29)
     end_date = datetime(2024, 6, 7)
-    search_terms = 'python'
-    subreddit='learnpython'
-
+    keyword = searchwords
+    subreddit_name = 'stocks'
     reddit = api_client.get_reddit_api_client()
-    #api = PushshiftAPI(reddit)
-
-    start_epoch = int(start_date.timestamp())
-    end_epoch = int(end_date.timestamp())
-
-    pushshift_url = (
-        f'https://api.pushshift.io/reddit/search/submission/?q={search_terms}'
-        f'&after={start_epoch}&before={end_epoch}&subreddit={subreddit}&size={100}'
-    )
-
-    response = requests.get(pushshift_url)
-    data = response.json().get('data', [])
+    subreddit = reddit.subreddit(subreddit_name)
+    hot_posts = subreddit.hot(limit=10)
     
-    # Extract post IDs and fetch more details using PRAW
-    post_ids = [post['id'] for post in data]
-    posts = [reddit.submission(id=post_id) for post_id in post_ids]
-    """search_results =reddit.search_submissions(
-        q=search_terms,
-        subreddit=subreddit,
-        after=start_epoch,
-        before=end_epoch,
-        limit=20  # You can adjust the limit as needed
-    )"""
-    print("here")
-    print(str(posts))
+    matching_posts = []
+    titles = []
+    #keyword = keyword.lower()
+    for post in hot_posts:
+        post_data2 = {
+            'id': post.id,
+            'title': post.title,
+            'score': post.score,
+            'url': post.url,
+            'num_comments': post.num_comments,
+            'created_utc': post.created_utc,
+            'author': str(post.author)}
+        titles.append(post_data2['title'])
+
+    for i in range(0, len(titles)): 
+        #print(titles[i])
+        #if re.search(keyword, titles[i], re.IGNORECASE):
+        if keyword in titles[i]:
+            matching_posts.append([titles[i]])
+    print(matching_posts)
 
     
 def get_news(news_key, beginning_date, ending_date):
