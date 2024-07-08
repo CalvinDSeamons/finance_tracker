@@ -221,11 +221,7 @@ def search_reddit_data(api_client, timerange, searchwords):
             'author': str(post.author)}
         titles.append(post_data2['title'])
 
-    for i in range(0, len(titles)): 
-        #print(titles[i])
-        #if re.search(keyword, titles[i], re.IGNORECASE):
-        if keyword in titles[i]:
-            matching_posts.append([titles[i]])
+    matching_posts = [word for word in titles if keyword[0] in word]
     print(matching_posts)
 
     
