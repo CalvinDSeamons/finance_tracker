@@ -78,11 +78,16 @@ class stocksleuth_gui:
         self.submit_button.grid(row=0, column=4, padx=(10, 10), pady=5, sticky='w')
 
         # Create print button
-        self.print_button = tk.Button(self.footer_frame, text="Reddit Search", command=self.search_reddit)
-        self.print_button.grid(row=0, column=5, padx=(10, 10), pady=5, sticky='w')
+        self.print_button = tk.Button(self.footer_frame, text="Social Media Overlay", command=self.search_reddit)
+        self.print_button.grid(row=0, column=6, padx=(10, 10), pady=5, sticky='w')
+
+        # Create SEC Filing Button
+        self.sec_button = tk.Button(self.footer_frame, text="SEC Data", command=self.sec_info)
+        self.sec_button.grid(row=0, column=5, padx=(10, 10), pady=5, sticky='w')
+
 
         self.help_button = tk.Button(self.footer_frame, text="?", command=self.launch_help_window)
-        self.help_button.grid(row=0, column=6, padx=(10, 10), pady=5, sticky='w')
+        self.help_button.grid(row=0, column=8, padx=(10, 10), pady=5, sticky='w')
 
         # Define variables for toggle switches
         self.reddit_var = tk.BooleanVar(value=False)
@@ -206,22 +211,8 @@ class stocksleuth_gui:
         ax2.legend(loc='upper right')
         ax2.get_legend().remove()
 
-        print(str(highlight_indices))
         if down_data != None:
-            print("TRUE")
             ax.scatter([dates[i] for i in highlight_indices], [closes[i] for i in highlight_indices], color='red')
-
-        """cursor = mplcursors.cursor(ax.scatter(dates, closes, color='blue', s=30), hover=True)
-        @cursor.connect("add")
-        def on_add(sel):
-            index = sel.target.index
-            date = mdates.num2date(dates[index]).strftime('%Y-%m-%d')
-            close_price = closes[index]
-            volume = volumes[index]
-            sel.annotation.set(text=f"Date: {date}\nClose: {close_price}\nVolume: {volume}", 
-                               position=(0, 30), 
-                               anncoords="offset points")"""
-
 
         # Adjust subplots to fit in the figure area
         plt.subplots_adjust(bottom=0.25)
@@ -242,6 +233,10 @@ class stocksleuth_gui:
     def display_obj(self):
          print(self.api_client.get_news_keywords())
 
+    def return_api_obj_deets(self):
+        # This is janky as fuck and needs to be chaged.
+        return '../configs/api-client2.yaml',self.ticker_entry.get(), self.dummy_data_var.get(), self.keyword_var.get(), None
+
     def launch_help_window(self):
         # This function makes a popup that contains information on following stocks. 
         # self.help_button['state'] = 'disabled' Need a way to enable/disable button or you can spam infinite help windows oh well.
@@ -256,12 +251,10 @@ class stocksleuth_gui:
         
     def search_reddit(self):
         # Search_Reddit looks back at reddit posts and finds freq of search term provided
-        ticker = self.ticker_entry.get()
-        keywords= self.keyword_var.get()
-        config='../configs/api-client2.yaml'
-        webscraper=None
-        dummy = self.dummy_data_var.get()
-        self.api_client = get_stock_info.APIClient(config,ticker,dummy,keywords,webscraper) # creates api_cleint obj within tkinter.
+        
+        # Called to populte API Cleint.
+        config, ticker, dummy, keywords, webscraper = self.return_api_obj_deets()
+        self.api_client = get_stock_info.APIClient(config, ticker, dummy, keywords, webscraper)
         # Declare empt json files for plotting data.
         dummy_data  = {}
         reddit_data = {}
@@ -281,7 +274,11 @@ class stocksleuth_gui:
         #print(str(bigsad))
         self.update_plot_v2(data, reddit_data, bigsad)
 
-
+    def sec_info(self):
+        config, ticker, dummy, keywords, webscraper = self.return_api_obj_deets()
+        self.api_client = get_stock_info.APIClient(config, ticker, dummy, keywords, webscraper)
+        data = get_stock_info.get_sec_data(self.api_client)
+        print(str(data))
         
 
 def launch_gui():

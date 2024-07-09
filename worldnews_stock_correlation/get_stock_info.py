@@ -9,6 +9,7 @@ import pandas as pd
 import praw
 import re
 import requests
+import sec_api
 import sys
 import time
 import warnings
@@ -366,7 +367,7 @@ def get_dummy_data(api_client): # return presaved stock json objs.
         with open('../dummy_data/AAPL.json', 'r') as file:
           return json.load(file)
     else:
-        error_exit("Error: When using dummy flag specify wither NVDA or AAPL as the ticker.")
+        error_exit("Error: When using dummy flag specify NVDA or AAPL as the ticker.")
 
 def get_consecutive_down_days(data):
     # Extract the time series data and convert it to a DataFrame
@@ -401,4 +402,34 @@ def get_consecutive_down_days(data):
         down_periods.append((start_date, end_date))
 
     return down_periods
+
+def get_sec_data(api_client):
+    token  = api_client.get_sec_api()
+    ticker = api_client.get_ticker()
+    query_api = sec_api.QueryApi(api_key=token)
+
+    query = {
+    "query": {
+        "query_string": {
+            "query": f"ticker:{ticker} AND formType:\"8-K\""
+        }
+    },
+    "from": "0",
+    "size": "10",  # Number of results to retrieve
+    "sort": [{"filedAt": {"order": "desc"}}]
+    }
+
+    response = query_api.get_filings(query)
+    return response
+    # Print the results
+
+    #for filing in response['filings']:
+    #    print(f"Company: {filing['companyName']}")
+    #    print(f"CIK: {filing['cik']}")
+    #    print(f"Form Type: {filing['formType']}")
+    #    print(f"Filed At: {filing['filedAt']}")
+    #    print(f"Report URL: {filing['linkToFilingDetails']}")
+    #    print("-" * 40)
+
+    
                 
