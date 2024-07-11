@@ -278,7 +278,15 @@ class stocksleuth_gui:
         config, ticker, dummy, keywords, webscraper = self.return_api_obj_deets()
         self.api_client = get_stock_info.APIClient(config, ticker, dummy, keywords, webscraper)
         data = get_stock_info.get_sec_data(self.api_client)
-        print(str(data))
+
+        for filing in data['filings']:
+            print(f"Company: {filing['companyName']}")
+            print(f"CIK: {filing['cik']}")
+            print(f"Form Type: {filing['formType']}")
+            print(f"Filed At: {filing['filedAt']}")
+            print(f"Report URL: {filing['linkToFilingDetails']}")
+            print("-" * 40)
+        #print(str(data))
         
 
 def launch_gui():
