@@ -3,6 +3,9 @@
 import argparse
 import time
 
+def pad_string(s, length=12):
+    return s.ljust(length)
+
 def reinvest_calc(data):
     if data == 'CONY' or data == 'cony':
         dates          = ['10/5/23', '11/7/23', '12/6/23', '01/4/24', '02/6/24', '03/5/24', '04/3/24', '05/3/24', '06/5/24', '07/3/24', '08/6/24', '09/5/24']  
@@ -18,13 +21,6 @@ def reinvest_calc(data):
         
         price_at_month = [21.22, 21.58, 20.84, 19.32, 19.70, 19.85, 19.65, 19.50, 19.89, 18.64, 17.87, 17.45, 16.88, 17.30, 17.74, 17.88, 18.00, 18.20, 18.12, 18.05, 17.98]
 
-
-
-
-
-
-
-
     # found values
 
     shares = []
@@ -34,7 +30,7 @@ def reinvest_calc(data):
 
     shares.append(round(initial_invest/price_at_month[0],5)) # sets inital shares.
     print("Starting with $"+str(initial_invest)+" in " + data + " on 10/5/2023")
-    print("Date    | Price  | Dist    | Shares    | NAV (re)  | NAV (no-re)")
+    print("Date    | Price  | Dist    | Shares       | NAV (re)  | NAV (no-re)")
     print("-"*80)
     for i in range(0, t):
         cash = shares[i]* reinvest[i] # (shares * price per shares) is the distribution cash for the month.
@@ -42,10 +38,13 @@ def reinvest_calc(data):
         shares.append(round(shares[i]+ (cash/price_at_month[i]),5)) # we take the cash and divide by the price of the stock to add on to out stock reinvest.
         NAV = round(shares[i]*price_at_month[i],2) # Net Asset Value is shares at current market pirce. 
         SADNAV = round(shares[0]*price_at_month[i],2) # Net Asset Value without reinvest.
+
+        # After all the calcualtions are done we can format the values to strings for cleaner display.
+        share = pad_string(str(shares[i]))
         pam= "{:.2f}".format(price_at_month[i]) # Need to format for display...
         NAV= "{:.2f}".format(NAV) # Format
         cashprint = "{:.2f}".format(cashout)
-        print(dates[i] +" | $"+pam+ " | $" + str(reinvest[i]) + " | " + str(shares[i]) + " | $" + str(NAV) + " | $" + str(SADNAV) + " with $" + cashprint + " cash.")
+        print(dates[i] +" | $"+pam+ " | $" + str(reinvest[i]) + " | " + share + " | $" + str(NAV) + " | $" + str(SADNAV) + " with $" + cashprint + " cash.")
         time.sleep(.5)
 
 
