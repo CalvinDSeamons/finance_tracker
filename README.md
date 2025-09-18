@@ -1,6 +1,7 @@
 # StockSleuth: Unveiling Market Insights - A Fusion of Stock Analysis and Web Intelligence
 ***
 ### Introduction
+As of 09/18/2025 this app is pretty much dead. AI scraping for training data has made most sites close free dev api. So I cant really get any info without paying. 
 This repository is a collection of scripts intended for analyzing world events, social media posts/trends, and other potentially influential indicators to compare against market trends. 
 
 
